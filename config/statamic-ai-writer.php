@@ -86,4 +86,24 @@ return [
         'taxonomies' => ['tags', 'categories', 'topics'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Image Alt-Text Generation
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for generating accessibility and SEO alt-texts for images
+    | using vision-capable OpenAI-compatible models.
+    |
+    */
+    'alt_text' => [
+        'enabled' => true,
+        'model' => env('STATAMIC_AI_VISION_MODEL', env('OPEN_AI_MODEL', 'gpt-4o-mini')),
+        'image_detail' => env('OPEN_AI_IMAGE_DETAIL', 'low'),
+        'max_tokens' => (int) env('OPEN_AI_MAX_TOKENS', 150),
+        'generate_on_upload' => (bool) env('GENERATE_ALT_TEXT_ON_UPLOAD', false),
+        'queue' => env('GENERATE_ALT_TEXT_QUEUE', 'default'),
+        'default_language' => env('STATAMIC_AI_ALT_LANG', 'de'),
+        'field_mapping' => [],
+    ],
+
 ];

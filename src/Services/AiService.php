@@ -155,6 +155,101 @@ class AiService
     }
 
     /**
+     * Generate descriptive image alt text for accessibility and SEO.
+     *
+     * @param mixed $asset Statamic Asset instance, array with contents/mime_type, or file path
+     * @param string|null $language
+     * @param string|null $customInstruction
+     * @return string
+     * @throws Exception
+     */
+    public function generateAltText(mixed $asset, ?string $language = null, ?string $customInstruction = null): string
+    {
+        $language = $language ?: config('statamic-ai-writer.alt_text.default_language', 'de');
+        $languageName = config("statamic-ai-writer.supported_languages.{$language}", $language);
+
+        [$encodedImage, $mimeType] = $this->extractImagePayload($asset);
+
+        $visionModel = config('statamic-ai-writer.alt_text.model')
+            ?: (config('statamic-ai-writer.model') ?: $this->model);
+
+        $imageDetail = config('statamic-ai-writer.alt_text.image_detail', 'low');
+        $maxTokens = (int) (config('statamic-ai-writer.alt_text.max_tokens') ?: 150);
+
+        $systemPrompt = "You are an accessibility and SEO specialist generating concise, descriptive alt text for images. Answer short and descriptive, typically 1 to 2 sentences. Do not start with 'Image of', 'Picture of', or 'Photo of'. Capitalize the first letter and end with a period. Answer in {$languageName}.";
+
+        if ($customInstruction) {
+            $systemPrompt .= " Additional guidance: {$customInstruction}";
+        }
+
+        $messages = [
+            [
+                'role' => 'system',
+                'content' => $systemPrompt,
+            ],
+            [
+                'role' => 'user',
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => 'Generate an alt text for this image.',
+                    ],
+                    [
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => "data:{$mimeType};base64,{$encodedImage}",
+                            'detail' => $imageDetail,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->chat($messages, [
+            'model' => $visionModel,
+            'max_tokens' => $maxTokens,
+            'temperature' => 0.5,
+        ]);
+
+        return trim(htmlspecialchars_decode($response, ENT_QUOTES));
+    }
+
+    /**
+     * Extract base64 image payload and mime type from various asset representations.
+     *
+     * @param mixed $asset
+     * @return array{0: string, 1: string}
+     * @throws Exception
+     */
+    protected function extractImagePayload(mixed $asset): array
+    {
+        if (is_object($asset) && method_exists($asset, 'contents') && method_exists($asset, 'mimeType')) {
+            $mimeType = $asset->mimeType();
+            $contents = $asset->contents();
+
+            return [base64_encode($contents), $mimeType];
+        }
+
+        if (is_array($asset)) {
+            $mimeType = $asset['mime_type'] ?? 'image/jpeg';
+            $contents = $asset['contents'] ?? null;
+            $base64 = $asset['base64'] ?? ($contents ? base64_encode($contents) : null);
+
+            if ($base64) {
+                return [$base64, $mimeType];
+            }
+        }
+
+        if (is_string($asset) && file_exists($asset)) {
+            $mimeType = mime_content_type($asset) ?: 'image/jpeg';
+
+            return [base64_encode(file_get_contents($asset)), $mimeType];
+        }
+
+        throw new Exception('Invalid asset provided for alt text generation.');
+    }
+
+    /**
      * Send chat completion request to the OpenAI-compatible endpoint.
      *
      * @param array<int, array{role: string, content: string}> $messages
