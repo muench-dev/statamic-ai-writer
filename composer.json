@@ -1,0 +1,62 @@
+{
+    "name": "muench-dev/statamic-ai-writer",
+    "description": "AI-powered writing assistant for Statamic: refine, resize, translate, summarize, and classify content directly within the text editor.",
+    "keywords": [
+        "statamic",
+        "statamic-addon",
+        "ai",
+        "openai",
+        "ai-writer",
+        "bard",
+        "editor",
+        "summarize",
+        "translate",
+        "classification"
+    ],
+    "homepage": "https://github.com/muench-dev/statamic-ai-writer",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Christian Münch",
+            "email": "christian@muench.dev",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/muench-dev/statamic-ai-writer/issues",
+        "source": "https://github.com/muench-dev/statamic-ai-writer"
+    },
+    "autoload": {
+        "psr-4": {
+            "MuenchDev\\StatamicAiWriter\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MuenchDev\\StatamicAiWriter\\Tests\\": "tests"
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "statamic/cms": "^5.0|^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpunit/phpunit": "^10.0|^11.0|^12.0|^13.0"
+    },
+    "extra": {
+        "statamic": {
+            "name": "AI Writer",
+            "description": "Modify content in the text editor with AI: resizing, summarization, translation, and classification.",
+            "developer": "Christian Münch",
+            "developer_url": "https://muench.dev"
+        },
+        "laravel": {
+            "providers": [
+                "MuenchDev\\StatamicAiWriter\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -1,0 +1,15 @@
+{
+  "name": "statamic-ai-writer",
+  "version": "1.0.0",
+  "description": "Statamic AI Writer asset bundle",
+  "scripts": {
+    "build": "cp resources/js/ai-writer.js dist/js/ai-writer.js && cp resources/css/ai-writer.css dist/css/ai-writer.css"
+  },
+  "keywords": [
+    "statamic",
+    "ai-writer",
+    "bard"
+  ],
+  "author": "Christian Münch <christian@muench.dev>",
+  "license": "MIT"
+}
