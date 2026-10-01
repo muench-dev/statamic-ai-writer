@@ -94,3 +94,29 @@ test('textarea fields update the field value through the payload', () => {
     manager.applyReplacement();
     assert.equal(updated, 'Old longer text');
 });
+
+test('settings are fetched only after Statamic has booted its HTTP client', async () => {
+    const booted = [];
+    const requests = [];
+    const window = {
+        Statamic: {
+            booted(callback) { booted.push(callback); },
+            $fieldActions: { add() {} },
+        },
+    };
+    const document = { addEventListener() {}, querySelector() { return null; }, getElementById() { return null; } };
+    runInNewContext(readFileSync(resolve(__dirname, '../../resources/js/ai-writer.js'), 'utf8'), {
+        window, document, console, Event,
+    });
+    const manager = window.StatamicAiWriter;
+    assert.equal(booted.length, 1);
+    assert.equal(manager.settings.model, 'gpt-4o-mini');
+
+    window.Statamic.$app = { config: { globalProperties: { $axios: {
+        get: async (url) => { requests.push(url); return { data: { model: 'gpt-6-luna', default_language: 'en' } }; },
+    } } } };
+    await booted[0]();
+    assert.deepEqual(requests, ['/cp/ai-writer/settings']);
+    assert.equal(manager.settings.model, 'gpt-6-luna');
+    assert.equal(manager.state.targetLanguage, 'en');
+});

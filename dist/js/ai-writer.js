@@ -70,7 +70,13 @@
         }
 
         async init() {
-            this.fetchSettings();
+            // Statamic 6 creates its HTTP client in Statamic.start(), after addon
+            // scripts load; fetching earlier fails and leaves the default settings.
+            if (typeof window.Statamic?.booted === 'function') {
+                window.Statamic.booted(() => this.fetchSettings());
+            } else {
+                this.fetchSettings();
+            }
             this.setupFloatingSelectionTrigger();
             this.setupBardIntegration();
             this.setupFieldActions();
