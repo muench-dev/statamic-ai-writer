@@ -73,6 +73,7 @@
             this.fetchSettings();
             this.setupFloatingSelectionTrigger();
             this.setupBardIntegration();
+            this.setupFieldActions();
         }
 
         async fetchSettings() {
@@ -126,6 +127,64 @@
                     },
                 };
             });
+        }
+
+        // Markdown and textarea fields have no Bard toolbar, and CodeMirror does not
+        // always expose a native DOM selection, so offer a quick field action instead.
+        setupFieldActions() {
+            if (!window.Statamic?.$fieldActions) {
+                return;
+            }
+
+            ['markdown-fieldtype', 'textarea-fieldtype'].forEach((binding) => {
+                window.Statamic.$fieldActions.add(binding, {
+                    title: 'AI Assistant',
+                    icon: 'ai-sparks',
+                    quick: true,
+                    run: (payload) => this.openFromField(payload),
+                });
+            });
+        }
+
+        openFromField(payload) {
+            const cm = payload.vm?.codemirror || null;
+            const textarea = cm ? null : payload.vm?.$el?.querySelector?.('textarea') || null;
+            const value = cm ? cm.getValue() : String(payload.value ?? '');
+
+            let start = 0;
+            let end = value.length;
+            if (cm && cm.somethingSelected()) {
+                const { anchor, head } = cm.listSelections()[0];
+                start = Math.min(cm.indexFromPos(anchor), cm.indexFromPos(head));
+                end = Math.max(cm.indexFromPos(anchor), cm.indexFromPos(head));
+            } else if (textarea && textarea.selectionStart !== textarea.selectionEnd) {
+                start = textarea.selectionStart;
+                end = textarea.selectionEnd;
+            }
+
+            // Without a selection the whole field is used and replaced.
+            this.open({
+                type: 'field',
+                payload,
+                cm,
+                value,
+                start,
+                end,
+                text: value.slice(start, end),
+            });
+        }
+
+        applyToField(ctx, newText, insertBelow = false) {
+            const start = insertBelow ? ctx.end : ctx.start;
+            const insert = insertBelow ? "\n\n" + newText : newText;
+
+            // Edit CodeMirror directly so its undo history and change events stay intact.
+            if (ctx.cm) {
+                ctx.cm.replaceRange(insert, ctx.cm.posFromIndex(start), ctx.cm.posFromIndex(ctx.end));
+                return;
+            }
+
+            ctx.payload.update(ctx.value.slice(0, start) + insert + ctx.value.slice(ctx.end));
         }
 
         setupFloatingSelectionTrigger() {
@@ -890,6 +949,9 @@
             if (this.activeContext?.editor?.state?.doc) {
                 return this.activeContext.editor.state.doc.textBetween(0, this.activeContext.editor.state.doc.content.size, '\n');
             }
+            if (this.activeContext?.type === 'field') {
+                return this.activeContext.value;
+            }
             const editorEl = this.activeContext?.editorEl;
             const bard = editorEl?.closest('.bard-fieldtype')?.querySelector('.ProseMirror');
             if (bard) return bard.textContent || '';
@@ -909,6 +971,8 @@
             if (ctx?.type === 'bard' && ctx.editor) {
                 const { from, to } = ctx;
                 ctx.editor.chain().focus().insertContentAt({ from, to }, newText).run();
+            } else if (ctx?.type === 'field' && ctx.payload) {
+                this.applyToField(ctx, newText);
             } else if (ctx?.type === 'dom' && ctx.editorEl) {
                 this.replaceInDom(ctx, newText);
             } else {
@@ -934,6 +998,8 @@
             if (ctx?.type === 'bard' && ctx.editor) {
                 const { to } = ctx;
                 ctx.editor.chain().focus().insertContentAt(to, "\n\n" + newText).run();
+            } else if (ctx?.type === 'field' && ctx.payload) {
+                this.applyToField(ctx, newText, true);
             } else if (ctx?.type === 'dom' && ctx.editorEl) {
                 this.insertBelowInDom(ctx, newText);
             } else {

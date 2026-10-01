@@ -157,7 +157,8 @@ return [
 - Click **Replace Selection** or **Insert Below** to insert the modified text back into Bard.
 
 ### 2. In Markdown / Text Fields
-- Highlight any text in the editor.
+- Click the **AI Assistant** quick action (✨) in the field header of any Markdown or Textarea field. The current selection is preloaded; without a selection the whole field is used, and **Replace Selection** replaces the whole field.
+- Alternatively, highlight any text in the editor.
 - A floating **Ask AI** pill will appear above the selection.
 - Click the pill to open the assistant.
 - Apply the changes directly back into the editor or copy to clipboard.
