@@ -1,6 +1,6 @@
 {
     "name": "muench-dev/statamic-ai-writer",
-    "description": "AI-powered writing assistant for Statamic: refine, resize, translate, summarize, and classify content directly within the text editor.",
+    "description": "AI-powered writing assistant for Statamic: refine, resize, translate, summarize, classify content, and generate post titles directly within the text editor.",
     "keywords": [
         "statamic",
         "statamic-addon",
@@ -47,7 +47,7 @@
     "extra": {
         "statamic": {
             "name": "AI Writer",
-            "description": "Modify content in the text editor with AI: resizing, summarization, translation, and classification.",
+            "description": "Modify content in the text editor with AI: resizing, summarization, translation, classification, and title generation.",
             "developer": "Christian Münch",
             "developer_url": "https://muench.dev"
         },

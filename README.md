@@ -16,7 +16,7 @@
   </a>
 </p>
 
-> AI-powered writing assistant for Statamic: modify, shorten, expand, rephrase, translate, summarize, and classify content directly within the text editor.
+> AI-powered writing assistant for Statamic: modify, shorten, expand, rephrase, translate, summarize, classify content, and generate post titles directly within the text editor.
 
 Statamic AI Writer integrates seamlessly with your editor experience (Bard, Markdown, and text areas). Select or mark any text to refine it with AI, generate executive summaries, translate sections (and optionally post titles), or receive automated taxonomy recommendations.
 
@@ -42,6 +42,10 @@ Statamic AI Writer integrates seamlessly with your editor experience (Bard, Mark
   - One-click copy or batch apply.
 - **💬 Custom Prompts**:
   - Direct AI instructions on selected text (e.g. "Fix spelling and grammar", "Convert to a Markdown table", "Make tone humorous").
+- **✨ Title Generation**:
+  - Generate up to five headline suggestions with a single click on **Title Generation** in the assistant.
+  - Brainstorm balanced, professional, casual, or creative titles in the content's language.
+  - Copy individual suggestions or apply one to the post title without changing the body.
 - **🔌 OpenAI Compatible**:
   - Connects to official OpenAI, Opper AI, OpenRouter, local Ollama, Groq, or any OpenAI-compatible API endpoint.
 - **✨ Seamless UX**:
@@ -148,7 +152,7 @@ return [
 ### 1. In Bard Editor
 - Click the **AI Assistant** icon (✨) in the Bard toolbar, or simply highlight any text.
 - If text is highlighted, the AI dialog opens with the selection preloaded.
-- Choose your action (**Resize**, **Summarize**, **Translate**, **Classify**, or **Custom**).
+- Choose your action (**Resize**, **Summarize**, **Translate**, **Classify**, **Title Generation**, or **Custom**).
 - Review the generated result in the editable preview pane.
 - Click **Replace Selection** or **Insert Below** to insert the modified text back into Bard.
 
@@ -170,6 +174,12 @@ return [
 
 ---
 
+### 5. Generating Post Titles
+- Open the AI Assistant from Bard or a text selection, then click **Title Generation**. Suggestions are generated automatically from the full active Bard document, or the available editor content/selection.
+- Select a **Headline Tone** to generate fresh suggestions, or click **Regenerate Titles** to brainstorm more headlines.
+- Click **Copy** on a suggestion, or **Use Title** when a post title field is available. Applying a title updates the publish form; save the entry normally to persist it.
+- Existing AI credentials and model settings are used. No blueprint changes are required. Empty content and provider errors are shown in the dialog so you can retry.
+
 ## Testing
 
 Run tests inside the addon directory:
@@ -183,6 +193,8 @@ Or using PHPUnit:
 ```bash
 ./vendor/bin/phpunit
 ```
+
+Run the frontend title-generation checks with `npm test`, and rebuild the distributed assets with `npm run build` after changing JavaScript or CSS.
 
 ---
 

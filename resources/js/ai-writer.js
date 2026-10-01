@@ -6,6 +6,7 @@
  * - Content Summarization (Bullets, Paragraph, TL;DR)
  * - Content Translation (Paragraphs, Headings, and Post Title)
  * - Content Classification (Tags & Categories suggestions)
+ * - Title Generation (Headline suggestions with selectable tone)
  * - Custom AI instructions
  */
 
@@ -47,7 +48,7 @@
             };
 
             this.state = {
-                tab: 'resize', // resize, summarize, translate, classify, custom
+                tab: 'resize', // resize, summarize, translate, classify, custom, titles
                 subAction: 'shorten', // shorten, expand, rephrase
                 summaryFormat: 'bullets', // bullets, paragraph, tldr
                 targetLanguage: 'de',
@@ -57,6 +58,8 @@
                 generatedText: '',
                 postTitle: '',
                 translatedTitle: '',
+                titleSuggestions: [],
+                titleTone: 'balanced',
                 classificationTags: [],
                 classificationCategories: [],
                 loading: false,
@@ -93,7 +96,7 @@
         }
 
         axios() {
-            return window.Statamic?.$axios || window.axios;
+            return window.Statamic?.$app?.config?.globalProperties?.$axios || window.Statamic?.$axios || window.axios;
         }
 
         toast(message, type = 'success') {
@@ -237,13 +240,14 @@
             this.state.originalText = context.text || '';
             this.state.generatedText = '';
             this.state.translatedTitle = '';
+            this.state.titleSuggestions = [];
             this.state.error = null;
             this.state.loading = false;
             this.state.classificationTags = [];
             this.state.classificationCategories = [];
 
             // Detect post title on page
-            const titleInput = document.querySelector('input[name="title"]') || document.getElementById('input-title');
+            const titleInput = this.getTitleInput();
             this.state.postTitle = titleInput ? titleInput.value : '';
 
             this.renderModal();
@@ -251,6 +255,8 @@
             // Auto-trigger classify if tab is classify
             if (this.state.tab === 'classify') {
                 this.runClassification();
+            } else if (this.state.tab === 'titles') {
+                this.runTitleGeneration();
             }
         }
 
@@ -274,8 +280,11 @@
                 if (e.key === 'Escape' && this.modalEl) this.close();
             }, { once: true });
 
-            const wordsCount = this.state.originalText.trim()
-                ? this.state.originalText.trim().split(/\s+/).length
+            const inputText = this.state.tab === 'titles'
+                ? this.getFullEditorContent().trim() || this.state.originalText
+                : this.state.originalText;
+            const wordsCount = inputText.trim()
+                ? inputText.trim().split(/\s+/).length
                 : 0;
 
             const modalHtml = `
@@ -307,6 +316,9 @@
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'custom' ? 'active' : ''}" data-tab="custom">
                             ${ICONS.sparkles} Custom Prompt
                         </button>
+                        <button type="button" class="statamic-ai-tab ${this.state.tab === 'titles' ? 'active' : ''}" data-tab="titles">
+                            ${ICONS.sparkles} Title Generation
+                        </button>
                     </div>
 
                     <div class="statamic-ai-body">
@@ -314,9 +326,9 @@
 
                         <div class="statamic-ai-preview-box">
                             <div class="statamic-ai-preview-header">
-                                <span>Input Text (${wordsCount} words, ${this.state.originalText.length} chars)</span>
+                                <span>Input Text (${wordsCount} words, ${inputText.length} chars)</span>
                             </div>
-                            <div class="statamic-ai-preview-content">${this.escapeHtml(this.state.originalText) || '<em class="opacity-50">No text selected</em>'}</div>
+                            <div class="statamic-ai-preview-content">${this.escapeHtml(inputText) || '<em class="opacity-50">No text selected</em>'}</div>
                         </div>
 
                         ${this.renderResultArea()}
@@ -342,6 +354,20 @@
         }
 
         renderTabContent() {
+            if (this.state.tab === 'titles') {
+                return `
+                    <div>
+                        <label for="statamic-ai-title-tone" class="block text-xs font-semibold uppercase text-gray-500 mb-1">Headline Tone</label>
+                        <select class="statamic-ai-select" id="statamic-ai-title-tone" ${this.state.loading ? 'disabled' : ''}>
+                            ${['balanced', 'professional', 'casual', 'creative'].map(tone => `
+                                <option value="${tone}" ${this.state.titleTone === tone ? 'selected' : ''}>${tone.charAt(0).toUpperCase() + tone.slice(1)}</option>
+                            `).join('')}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-2">Brainstorm headlines from your content. Choose a suggestion to update the post title, or copy it.</p>
+                    </div>
+                `;
+            }
+
             if (this.state.tab === 'resize') {
                 return `
                     <div>
@@ -446,6 +472,23 @@
                 `;
             }
 
+            if (this.state.tab === 'titles') {
+                const canApply = !!this.getTitleInput();
+                return `
+                    <div class="statamic-ai-title-suggestions">
+                        ${this.state.titleSuggestions.map((title, index) => `
+                            <div class="statamic-ai-title-suggestion">
+                                <span>${this.escapeHtml(title)}</span>
+                                <div>
+                                    <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary" data-copy-title="${index}">${ICONS.copy} Copy</button>
+                                    ${canApply ? `<button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-use-title="${index}">${ICONS.check} Use Title</button>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
             if (this.state.tab === 'classify') {
                 if (this.state.classificationTags.length === 0 && this.state.classificationCategories.length === 0) {
                     return `
@@ -530,6 +573,12 @@
         }
 
         renderFooterActions() {
+            if (this.state.tab === 'titles') {
+                return `<button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="run-titles" ${this.state.loading ? 'disabled' : ''}>
+                    ${ICONS.sparkles} ${this.state.titleSuggestions.length ? 'Regenerate Titles' : 'Generate Titles'}
+                </button>`;
+            }
+
             if (this.state.tab === 'classify') {
                 return `
                     <button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="copy-all-tags">
@@ -569,13 +618,38 @@
 
             // Tabs
             this.modalEl.querySelectorAll('.statamic-ai-tab').forEach(tab => {
+                tab.disabled = this.state.loading;
                 tab.addEventListener('click', () => {
+                    if (this.state.loading) return;
                     this.state.tab = tab.dataset.tab;
                     this.state.error = null;
                     this.renderModal();
                     if (this.state.tab === 'classify' && this.state.classificationTags.length === 0) {
                         this.runClassification();
+                    } else if (this.state.tab === 'titles' && this.state.titleSuggestions.length === 0) {
+                        this.runTitleGeneration();
                     }
+                });
+            });
+
+            // Title generation controls
+            const toneSelect = this.modalEl.querySelector('#statamic-ai-title-tone');
+            if (toneSelect) {
+                toneSelect.addEventListener('change', (e) => {
+                    this.state.titleTone = e.target.value;
+                    this.runTitleGeneration();
+                });
+            }
+            this.modalEl.querySelectorAll('[data-action="run-titles"]').forEach(btn => {
+                btn.addEventListener('click', () => this.runTitleGeneration());
+            });
+            this.modalEl.querySelectorAll('[data-copy-title]').forEach(btn => {
+                btn.addEventListener('click', () => this.copyToClipboard(this.state.titleSuggestions[Number(btn.dataset.copyTitle)]));
+            });
+            this.modalEl.querySelectorAll('[data-use-title]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    this.applyTitleUpdate(this.state.titleSuggestions[Number(btn.dataset.useTitle)]);
+                    this.close();
                 });
             });
 
@@ -774,11 +848,54 @@
             }
         }
 
+        async runTitleGeneration() {
+            if (this.state.loading) return;
+            const content = this.getFullEditorContent().trim() || this.state.originalText.trim();
+            if (!content) {
+                this.state.error = 'Add or select some post content before generating titles.';
+                this.renderModal();
+                return;
+            }
+
+            this.state.loading = true;
+            this.state.error = null;
+            this.state.titleSuggestions = [];
+            this.renderModal();
+            const modal = this.modalEl;
+
+            try {
+                const response = await this.axios().post(this.cpUrl('ai-writer/titles'), {
+                    content,
+                    title: this.getTitleInput()?.value || '',
+                    tone: this.state.titleTone,
+                });
+                if (this.modalEl !== modal) return;
+                if (!response.data?.success || !Array.isArray(response.data.titles) || !response.data.titles.length) {
+                    throw new Error(response.data?.error || 'No title suggestions were returned. Please try again.');
+                }
+                this.state.titleSuggestions = response.data.titles;
+            } catch (err) {
+                if (this.modalEl === modal) {
+                    this.state.error = err.response?.data?.error || err.response?.data?.message || err.message || 'Title generation failed.';
+                }
+            } finally {
+                if (this.modalEl === modal) {
+                    this.state.loading = false;
+                    this.renderModal();
+                }
+            }
+        }
+
         getFullEditorContent() {
             if (this.activeContext?.editor?.state?.doc) {
-                return this.activeContext.editor.state.doc.textContent;
+                return this.activeContext.editor.state.doc.textBetween(0, this.activeContext.editor.state.doc.content.size, '\n');
             }
-            const textarea = document.querySelector('.bard-fieldtype textarea, .markdown-fieldtype textarea');
+            const editorEl = this.activeContext?.editorEl;
+            const bard = editorEl?.closest('.bard-fieldtype')?.querySelector('.ProseMirror');
+            if (bard) return bard.textContent || '';
+            if (editorEl?.tagName === 'TEXTAREA') return editorEl.value;
+            const textarea = editorEl?.querySelector('textarea')
+                || document.querySelector('.bard-fieldtype textarea, .markdown-fieldtype textarea');
             if (textarea) return textarea.value;
             return '';
         }
@@ -876,8 +993,13 @@
             }
         }
 
-        applyTitleUpdate(newTitle) {
+        getTitleInput() {
             const titleInput = document.querySelector('input[name="title"]') || document.getElementById('input-title');
+            return titleInput && !titleInput.disabled && !titleInput.readOnly ? titleInput : null;
+        }
+
+        applyTitleUpdate(newTitle) {
+            const titleInput = this.getTitleInput();
             if (titleInput && newTitle) {
                 titleInput.value = newTitle;
                 titleInput.dispatchEvent(new Event('input', { bubbles: true }));

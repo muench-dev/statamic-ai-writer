@@ -540,3 +540,25 @@
 :is(.dark) .statamic-ai-checkbox-label {
     color: #94a3b8;
 }
+/* Headline suggestions keep long titles and their actions readable. */
+.statamic-ai-title-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.statamic-ai-title-suggestion {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+}
+
+.statamic-ai-title-suggestion > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Statamic AI Writer asset bundle",
   "scripts": {
+    "test": "node --test tests/js/*.test.cjs",
     "build": "cp resources/js/ai-writer.js dist/js/ai-writer.js && cp resources/css/ai-writer.css dist/css/ai-writer.css"
   },
   "keywords": [

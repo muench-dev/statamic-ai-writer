@@ -100,4 +100,58 @@ class AiWriterControllerTest extends TestCase
             'taxonomies',
         ]);
     }
+
+    public function test_it_returns_title_suggestions(): void
+    {
+        Http::fake(['*' => Http::response([
+            'choices' => [['message' => ['content' => '{"titles":["Smarter Headline Writing","AI for Editors"]}']]],
+        ])]);
+
+        $this->postJson(cp_route('ai-writer.titles'), [
+            'content' => 'AI helps editors brainstorm headlines.',
+            'title' => 'Draft',
+            'tone' => 'creative',
+        ])->assertOk()->assertExactJson([
+            'success' => true,
+            'titles' => ['Smarter Headline Writing', 'AI for Editors'],
+        ]);
+    }
+
+    public function test_it_validates_title_generation_inputs_before_calling_the_provider(): void
+    {
+        Http::fake();
+
+        $this->postJson(cp_route('ai-writer.titles'), [
+            'content' => ' ',
+            'tone' => 'unsupported',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['content', 'tone']);
+
+        $this->postJson(cp_route('ai-writer.titles'), [
+            'content' => str_repeat('x', 50001),
+        ])->assertUnprocessable()->assertJsonValidationErrors('content');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_it_returns_title_provider_errors(): void
+    {
+        Http::fake(['*' => Http::response(['error' => ['message' => 'Rate limit reached']], 429)]);
+
+        $this->postJson(cp_route('ai-writer.titles'), ['content' => 'Post content'])
+            ->assertUnprocessable()->assertJson([
+                'success' => false,
+                'error' => 'AI Provider Error (HTTP 429): Rate limit reached',
+            ]);
+    }
+
+    public function test_title_generation_requires_authentication(): void
+    {
+        auth()->logout();
+        Http::fake();
+
+        $this->postJson(cp_route('ai-writer.titles'), ['content' => 'Post content'])
+            ->assertUnauthorized();
+
+        Http::assertNothingSent();
+    }
 }

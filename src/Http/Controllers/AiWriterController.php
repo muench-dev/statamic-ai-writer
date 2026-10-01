@@ -101,6 +101,34 @@ class AiWriterController extends Controller
     }
 
     /**
+     * Generate headline suggestions without changing the entry.
+     */
+    public function titles(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'content' => 'required|string|max:50000',
+            'title' => 'nullable|string|max:500',
+            'tone' => 'nullable|string|in:balanced,professional,casual,creative',
+        ]);
+
+        try {
+            return response()->json([
+                'success' => true,
+                'titles' => $this->ai->generateTitles(
+                    $validated['content'],
+                    $validated['tone'] ?? 'balanced',
+                    $validated['title'] ?? null
+                ),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Get settings and options for the frontend dialog.
      */
     public function settings(Request $request): JsonResponse
