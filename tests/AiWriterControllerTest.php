@@ -16,8 +16,11 @@ class AiWriterControllerTest extends TestCase
         config()->set('ai-writer.base_url', 'https://api.openai.com/v1');
         config()->set('ai-writer.model', 'gpt-4o-mini');
 
-        $user = \Statamic\Facades\User::make()->email('test@example.com')->makeSuper();
-        $user->save();
+        $user = \Statamic\Facades\User::findByEmail('test@example.com');
+        if (! $user) {
+            $user = \Statamic\Facades\User::make()->id('9abdf419-ff07-4b33-9c6f-c5e4932cdfc3')->email('test@example.com')->makeSuper();
+            $user->save();
+        }
         $this->actingAs($user);
     }
 
