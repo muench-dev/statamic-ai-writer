@@ -70,7 +70,7 @@ Only commit, push, tag, or publish when the user explicitly requests that operat
 Version metadata and the dated v2.0.0 changelog section are already prepared. From the host-site root, preview that exact version without incrementing it again:
 
 ```bash
-ddev exec --dir=/var/www/html/addons/statamic-ai-writer npm run release -- --no-increment --dry-run
+ddev exec --dir=/var/www/html/addons/statamic-ai-writer npm run release -- --dry-run
 ```
 
 A dry run previews hooks and release actions; it does not execute validation hooks or write version/changelog files, create commits/tags, push, or publish. Run `npm run verify` separately. With no GitHub token, use `--no-github.release` for a local preview; this does not validate GitHub release authentication. Do not disable the clean-tree or branch checks for a real release.
@@ -78,10 +78,10 @@ A dry run previews hooks and release actions; it does not execute validation hoo
 When the user explicitly authorizes publication:
 
 ```bash
-ddev exec --dir=/var/www/html/addons/statamic-ai-writer npm run release -- --no-increment
+ddev exec --dir=/var/www/html/addons/statamic-ai-writer npm run release
 ```
 
-For later releases, add notes under Unreleased and use the approved increment, e.g. `npm run release -- patch`, `minor`, or `major`. Use `--no-increment` only when version metadata and a matching dated changelog section have both already been finalized. `.release-it.json`:
+`npm run release` always includes `--no-increment` for an already prepared version. For later releases, add notes under Unreleased and use the approved increment, e.g. `npm run release:next -- patch`, `minor`, or `major`. Use the prepared-version command only when version metadata and a matching dated changelog section have both already been finalized. `.release-it.json`:
 
 - Uses the synchronized package metadata as the current/prepared version; Composer still obtains its distributed version from Git tags.
 - Requires `main`, an upstream, and a clean working tree.

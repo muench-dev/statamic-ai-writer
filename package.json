@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test tests/js/*.test.cjs",
     "verify": "composer validate --strict && composer test && npm test",
-    "release": "release-it",
+    "release": "release-it --no-increment",
+    "release:next": "release-it",
     "build": "cp resources/js/ai-writer.js dist/js/ai-writer.js && cp resources/css/ai-writer.css dist/css/ai-writer.css"
   },
   "keywords": [

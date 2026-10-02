@@ -258,13 +258,13 @@ Install the release tools with `npm ci` using a supported Node version (Node 24.
 The breaking **v2.0.0** update already has finalized changelog notes and version metadata. Publish that prepared version without incrementing it again:
 
 ```bash
-npm run release -- --no-increment --dry-run
-npm run release -- --no-increment
+npm run release -- --dry-run
+npm run release
 ```
 
 Run these inside the DDEV container, from the add-on directory. Supply `GITHUB_TOKEN` to the container environment with permission to create releases, and ensure Git push authentication is available there. A dry run previews release actions without writing versions, creating commits/tags, pushing, or publishing; run `npm run verify` separately because dry runs preview validation hooks too.
 
-For subsequent releases, add notes under Unreleased and use `npm run release -- patch`, `minor`, or `major` as appropriate; release-it will increment metadata and finalize those notes automatically. Use `--no-increment` only when both the target version and its dated changelog section have already been prepared.
+`npm run release` includes `--no-increment` and uses the prepared version's dated changelog section. For subsequent releases, add notes under Unreleased and use `npm run release:next -- patch`, `minor`, or `major` as appropriate; release-it will increment metadata and finalize those notes automatically. Use the prepared-version command only when both the target version and its dated changelog section have already been prepared.
 
 After release, verify that Packagist sees the new tag, install that version in an isolated Statamic 6 site, and resubmit the tagged release to the Statamic Marketplace. See [AGENTS.md](AGENTS.md) for the complete maintainer workflow.
 
