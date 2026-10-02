@@ -11,10 +11,13 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use MuenchDev\StatamicAiWriter\Services\AiService;
 use Statamic\Facades\Asset;
+use Statamic\Facades\Site;
 
 class GenerateAltTextJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public array $result = ['generated' => 0, 'skipped' => 0, 'failed' => 0];
 
     public function __construct(
         public string $assetId,
@@ -26,11 +29,12 @@ class GenerateAltTextJob implements ShouldQueue
 
     public function handle(AiService $ai): void
     {
+        $this->result = ['generated' => 0, 'skipped' => 0, 'failed' => 0];
         $asset = Asset::findById($this->assetId);
 
         if (! $asset) {
             Log::warning("AI Writer: Asset not found for alt text generation: {$this->assetId}");
-            return;
+            throw new Exception('The asset could not be found for alt text generation.');
         }
 
         if (! $asset->isImage() || $asset->extension() === 'svg') {
@@ -45,21 +49,39 @@ class GenerateAltTextJob implements ShouldQueue
             $existing = $asset->get($fieldName);
 
             if (! $this->overwrite && ! empty(trim((string) $existing))) {
+                $this->result['skipped']++;
+
                 continue;
             }
 
             try {
                 $altText = $ai->generateAltText($asset, (string) $locale);
 
-                if (! empty($altText)) {
-                    $asset->set($fieldName, $altText);
+                if (trim($altText) === '') {
+                    throw new Exception('The AI provider returned empty alt text.');
                 }
+                $asset->set($fieldName, $altText);
+                $this->result['generated']++;
             } catch (Exception $e) {
-                Log::error("AI Writer: Failed to generate alt text for asset [{$this->assetId}] in locale [{$locale}]: " . $e->getMessage());
+                $this->result['failed']++;
+                Log::error("AI Writer: Failed to generate alt text for asset [{$this->assetId}] in locale [{$locale}]: ".$e->getMessage());
             }
         }
 
-        $asset->save();
+        if ($this->result['generated'] > 0) {
+            try {
+                $asset->save();
+            } catch (Exception $e) {
+                $this->result['failed'] += $this->result['generated'];
+                $this->result['generated'] = 0;
+                Log::error("AI Writer: Failed to save alt text for asset [{$this->assetId}].");
+                throw $e;
+            }
+        }
+
+        if ($this->result['failed'] > 0) {
+            throw new Exception('AI Writer failed to generate one or more alt texts. Check the application log for details.');
+        }
     }
 
     /**
@@ -74,14 +96,15 @@ class GenerateAltTextJob implements ShouldQueue
             return $customMapping;
         }
 
-        $sites = \Statamic\Facades\Site::all();
-        $languages = $sites->map(fn($site) => $site->lang())->values()->unique();
+        $sites = Site::all();
+        $languages = $sites->map(fn ($site) => $site->lang())->values()->unique();
 
         if ($languages->count() <= 1) {
             $lang = $languages->first() ?: config('statamic-ai-writer.alt_text.default_language', 'de');
+
             return [$lang => 'alt'];
         }
 
-        return $languages->flatMap(fn($lang) => [$lang => "alt_{$lang}"])->all();
+        return $languages->flatMap(fn ($lang) => [$lang => "alt_{$lang}"])->all();
     }
 }

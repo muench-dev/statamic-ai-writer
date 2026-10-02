@@ -14,6 +14,7 @@ function setup() {
     const window = {
         axios: { get: async () => ({ data: {} }) },
         Statamic: {
+            $config: { get: (key) => key === 'aiWriter' ? { allowed: true, configured: true } : undefined },
             $fieldActions: {
                 add(binding, action) { (actions[binding] ||= []).push(action); },
             },
@@ -100,6 +101,7 @@ test('settings are fetched only after Statamic has booted its HTTP client', asyn
     const requests = [];
     const window = {
         Statamic: {
+            $config: { get: (key) => key === 'aiWriter' ? { allowed: true, configured: true } : undefined },
             booted(callback) { booted.push(callback); },
             $fieldActions: { add() {} },
         },

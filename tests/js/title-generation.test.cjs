@@ -16,6 +16,7 @@ function setup() {
         getElementById() { return null; },
     };
     const window = {
+        Statamic: { $config: { get: (key) => key === 'aiWriter' ? { allowed: true, configured: true } : undefined } },
         axios: { get: async () => ({ data: {} }) },
     };
     runInNewContext(readFileSync(resolve(__dirname, '../../resources/js/ai-writer.js'), 'utf8'), {

@@ -2,7 +2,6 @@
 
 namespace MuenchDev\StatamicAiWriter\Tests;
 
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use MuenchDev\StatamicAiWriter\Actions\GenerateAltTextAction;
@@ -39,7 +38,7 @@ class AltTextTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $payload = [
             'base64' => base64_encode('fake-png-bytes'),
             'mime_type' => 'image/png',
@@ -69,8 +68,9 @@ class AltTextTest extends TestCase
     public function test_it_dispatches_job_from_action(): void
     {
         Queue::fake();
+        config()->set('queue.default', 'redis');
 
-        $action = new GenerateAltTextAction();
+        $action = new GenerateAltTextAction;
         $asset = \Mockery::mock(Asset::class);
         $asset->shouldReceive('id')->andReturn('assets::sample.jpg');
         $asset->shouldReceive('isImage')->andReturn(true);
@@ -94,7 +94,7 @@ class AltTextTest extends TestCase
         $asset->shouldReceive('extension')->andReturn('png');
 
         $event = new AssetUploaded($asset, 'uploaded.png');
-        $listener = new GenerateAltTextOnUpload();
+        $listener = new GenerateAltTextOnUpload;
         $listener->handle($event);
 
         Queue::assertPushed(GenerateAltTextJob::class, function ($job) {
@@ -112,7 +112,7 @@ class AltTextTest extends TestCase
         $asset->shouldReceive('isImage')->andReturn(false);
 
         $event = new AssetUploaded($asset, 'doc.pdf');
-        $listener = new GenerateAltTextOnUpload();
+        $listener = new GenerateAltTextOnUpload;
         $listener->handle($event);
 
         Queue::assertNothingPushed();

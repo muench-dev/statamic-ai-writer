@@ -77,7 +77,9 @@ return [
     | Content Classification
     |--------------------------------------------------------------------------
     |
-    | Settings for tag and category recommendations.
+    | Settings for tag and category recommendations. Limits cap returned results.
+    | Only listed taxonomies visible to the current user provide existing terms.
+    | An empty taxonomies array disables existing-term context.
     |
     */
     'classification' => [

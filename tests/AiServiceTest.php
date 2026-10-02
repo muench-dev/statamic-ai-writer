@@ -12,15 +12,14 @@ class AiServiceTest extends TestCase
     {
         parent::setUp();
 
-        config()->set('ai-writer.api_key', 'test-api-key');
-        config()->set('ai-writer.base_url', 'https://api.openai.com/v1');
-        config()->set('ai-writer.model', 'gpt-4o-mini');
+        config()->set('statamic-ai-writer.api_key', 'test-api-key');
+        config()->set('statamic-ai-writer.base_url', 'https://api.openai.com/v1');
+        config()->set('statamic-ai-writer.model', 'gpt-4o-mini');
     }
 
     public function test_it_throws_exception_when_api_key_is_missing(): void
     {
-        config()->set('ai-writer.api_key', null);
-        putenv('OPEN_AI_API_KEY=');
+        config()->set('statamic-ai-writer.api_key', null);
 
         $service = new AiService(apiKey: null);
 
@@ -28,6 +27,18 @@ class AiServiceTest extends TestCase
         $this->expectExceptionMessage('OpenAI API Key is missing');
 
         $service->resize('Sample text to shorten', 'shorten');
+    }
+
+    public function test_classification_limits_use_the_published_config_and_cap_results(): void
+    {
+        config()->set('statamic-ai-writer.classification.max_tags', 1);
+        config()->set('statamic-ai-writer.classification.max_categories', 0);
+        Http::fake(['*' => Http::response(['choices' => [['message' => [
+            'content' => '{"tags":["one","two"],"categories":["Technology"]}',
+        ]]]])]);
+        $this->assertSame(['tags' => ['one'], 'categories' => []], (new AiService)->classify('Content'));
+        Http::assertSent(fn ($request) => str_contains($request['messages'][0]['content'], 'array of 1')
+            && str_contains($request['messages'][0]['content'], 'array of 0'));
     }
 
     public function test_it_shortens_text(): void
@@ -44,7 +55,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->resize('This is a much longer sample text that needs to be shortened.', 'shorten');
 
         $this->assertEquals('Shortened text.', $result);
@@ -70,7 +81,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->resize('Brief note.', 'expand');
 
         $this->assertEquals('An expanded and detailed description of the subject matter.', $result);
@@ -90,7 +101,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->resize('Clunky sentence.', 'rephrase');
 
         $this->assertEquals('A beautifully rephrased sentence.', $result);
@@ -110,7 +121,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->summarize('Long content about technology...', 'bullets');
 
         $this->assertStringContainsString('* Point 1', $result);
@@ -130,7 +141,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->translate('Hello World', 'de');
 
         $this->assertEquals('Hallo Welt', $result);
@@ -150,7 +161,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->translate('The Ultimate Guide', 'de', isTitle: true);
 
         $this->assertEquals('Der große Leitfaden', $result);
@@ -170,7 +181,7 @@ class AiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $service = new AiService();
+        $service = new AiService;
         $result = $service->classify('A comprehensive article on building AI addons for Statamic in Laravel.');
 
         $this->assertEquals(['laravel', 'statamic', 'ai'], $result['tags']);

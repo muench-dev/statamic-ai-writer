@@ -8,19 +8,20 @@ use MuenchDev\StatamicAiWriter\Services\AiService;
 use Statamic\Events\AssetUploaded;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
+use Statamic\Statamic;
 
 class ServiceProvider extends AddonServiceProvider
 {
     protected $scripts = [
-        __DIR__ . '/../dist/js/ai-writer.js',
+        __DIR__.'/../dist/js/ai-writer.js',
     ];
 
     protected $stylesheets = [
-        __DIR__ . '/../dist/css/ai-writer.css',
+        __DIR__.'/../dist/css/ai-writer.css',
     ];
 
     protected $routes = [
-        'cp' => __DIR__ . '/../routes/cp.php',
+        'cp' => __DIR__.'/../routes/cp.php',
     ];
 
     protected $actions = [
@@ -40,13 +41,19 @@ class ServiceProvider extends AddonServiceProvider
         parent::register();
 
         $this->app->singleton(AiService::class, function () {
-            return new AiService();
+            return new AiService;
         });
     }
 
     public function bootAddon()
     {
         $this->bootPermissions();
+        Statamic::provideToScript([
+            'aiWriter' => fn ($request) => [
+                'allowed' => (bool) $request->user()?->can('use ai writer'),
+                'configured' => ! empty(config('statamic-ai-writer.api_key')),
+            ],
+        ]);
     }
 
     protected function bootPermissions(): void

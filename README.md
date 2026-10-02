@@ -39,13 +39,17 @@ Statamic AI Writer integrates seamlessly with your editor experience (Bard, Mark
 - **🏷️ Content Classification**:
   - AI analyzes your content and suggests relevant tags and categories.
   - Recommends existing taxonomy terms when available and discovers new topics.
-  - One-click copy or batch apply.
+   - Copy individual suggestions or all tags; assign them to taxonomy fields manually.
 - **💬 Custom Prompts**:
   - Direct AI instructions on selected text (e.g. "Fix spelling and grammar", "Convert to a Markdown table", "Make tone humorous").
 - **✨ Title Generation**:
   - Generate up to five headline suggestions with a single click on **Title Generation** in the assistant.
   - Brainstorm balanced, professional, casual, or creative titles in the content's language.
-  - Copy individual suggestions or apply one to the post title without changing the body.
+   - Copy individual suggestions or apply one to the post title without changing the body.
+- **🖼️ Image Alt Text**:
+  - Generate alt text from the asset manager, individually or in bulk.
+  - Optional generation on upload, with language-specific fields for multilingual sites.
+  - Preserve existing descriptions by default, with an explicit overwrite option.
 - **🔌 OpenAI Compatible**:
   - Connects to official OpenAI, Opper AI, OpenRouter, local Ollama, Groq, or any OpenAI-compatible API endpoint.
 - **✨ Seamless UX**:
@@ -66,7 +70,7 @@ composer require muench-dev/statamic-ai-writer
 Publish the assets and configuration file:
 
 ```bash
-php artisan vendor:publish --tag="statamic-ai-writer" --force
+php artisan vendor:publish --tag="statamic-ai-writer"
 php artisan vendor:publish --tag="statamic-ai-writer-config"
 ```
 
@@ -81,6 +85,12 @@ OPEN_AI_API_KEY=your_api_key_here
 OPEN_AI_BASE_URL=https://api.openai.com/v1
 OPEN_AI_MODEL=gpt-4o-mini
 ```
+
+The assistant shows setup guidance until an API key is configured. After changing cached configuration, run `php artisan config:clear`. For non-super users, grant **Use AI Writer** to their role in the Control Panel. All assistant endpoints enforce this permission. Asset alt-text generation also requires **edit** permission for the asset's container; view-only access is insufficient. Taxonomy context is limited to configured taxonomies the user can view.
+
+### External requests and costs
+
+AI Writer sends the selected text, instructions, and relevant existing taxonomy terms to the configured provider. Title generation sends the available post content and current title. Translation can also send the post title. Alt-text generation sends the image's full contents as a base64-encoded image, once per language requiring a description. The `image_detail` option affects provider processing, not the amount of image data uploaded. Review your provider's data-retention and privacy terms before using private content or images. Provider credentials and any usage fees are supplied and paid by the site owner; no AI service subscription is included with this add-on. Image generation requires a vision-capable model and endpoint.
 
 ### Compatible Providers
 
@@ -110,6 +120,8 @@ OPEN_AI_MODEL=llama3.2
 ### Advanced Settings
 
 You can customize defaults in `config/statamic-ai-writer.php`:
+
+`classification.max_tags` and `max_categories` cap the returned suggestions. `classification.taxonomies` is an allowlist of handles used for existing-term context and the settings response; an empty array disables existing-term context. These options do not automatically apply suggestions or create terms.
 
 ```php
 return [
@@ -181,11 +193,43 @@ return [
 - Click **Copy** on a suggestion, or **Use Title** when a post title field is available. Applying a title updates the publish form; save the entry normally to persist it.
 - Existing AI credentials and model settings are used. No blueprint changes are required. Empty content and provider errors are shown in the dialog so you can retry.
 
+### 6. Generating Image Alt Text
+
+In **Assets**, select one or more raster images and choose **Generate AI Alt Text**. Existing non-empty alt fields are skipped unless **Overwrite existing alt text** is enabled. SVGs and non-images are excluded. The action requires **Use AI Writer** and edit access to each asset. Setting `alt_text.enabled` to `false` disables the asset action and upload generation.
+
+Configure automatic upload generation and the vision model in `.env`:
+
+```env
+GENERATE_ALT_TEXT_ON_UPLOAD=false
+STATAMIC_AI_VISION_MODEL=gpt-4o-mini
+GENERATE_ALT_TEXT_QUEUE=default
+STATAMIC_AI_ALT_LANG=de
+OPEN_AI_IMAGE_DETAIL=low
+OPEN_AI_MAX_TOKENS=150
+```
+
+Upload generation is opt-in. When enabled, authenticated uploaders must have the same AI and asset-edit permissions. Server-side uploads without a logged-in user use the site-wide automation setting. Images are sent to the provider, including automatically on upload when this option is enabled.
+
+The `alt_text` section of `config/statamic-ai-writer.php` controls the model, image detail, output token limit, queue name, default language, and optional `field_mapping`. By default, a site with one unique language writes `alt`; multiple site languages write `alt_{lang}`, such as `alt_en` and `alt_de`, using Statamic's site language codes. Add these text fields to the asset container's blueprint and use the matching field in your templates; the add-on does not create blueprint fields or switch template output for you. Existing fields are preserved unless overwrite is explicitly requested.
+
+To use different field names, configure a language-to-field mapping:
+
+```php
+'field_mapping' => ['en' => 'alt', 'de' => 'alt_de'],
+```
+
+With `QUEUE_CONNECTION=sync`, generation runs immediately and reports generated, skipped, and failed alt-field counts. Missing credentials and provider failures are reported as errors, including partial failures. With an asynchronous queue, the action only confirms that work was queued; it does not claim generation succeeded. Run a worker for the configured queue, for example `php artisan queue:work --queue=default`, and inspect application logs and `php artisan queue:failed` for failures. Successful language fields are saved even if another language fails; retrying without overwrite skips those already generated.
+
+### Updating from v1.2.0
+
+Review role permissions: users who previously used the assistant implicitly now need **Use AI Writer**. All configuration is read from `statamic-ai-writer`; move any custom settings previously placed in `config/ai-writer.php` into `config/statamic-ai-writer.php`. The unused bundled `ai-writer.php` config has been removed. Keep your existing published configuration and merge any missing defaults rather than overwriting it. Republish the updated assets with `php artisan vendor:publish --tag="statamic-ai-writer" --force` and clear cached configuration.
+
 ## Testing
 
 Run tests inside the addon directory:
 
 ```bash
+composer install
 composer test
 ```
 
@@ -197,8 +241,38 @@ Or using PHPUnit:
 
 Run the frontend title-generation checks with `npm test`, and rebuild the distributed assets with `npm run build` after changing JavaScript or CSS.
 
+## Support
+
+Community support and bug reports are available through [GitHub Issues](https://github.com/muench-dev/statamic-ai-writer/issues). Include your Statamic/PHP versions, queue driver, and reproduction steps; exclude API keys and private content.
+
+## Changelog
+
+### Unreleased
+
+- Enforce **Use AI Writer** on every CP endpoint and hide editor integrations from unauthorized users.
+- Restrict existing taxonomy context to configured handles and user visibility; require per-asset edit permission for alt-text actions and authenticated upload automation.
+- Report synchronous alt-text successes, skips, and failures accurately; surface queued failures for retries and preserve successful language fields.
+- Use the published `statamic-ai-writer` configuration consistently, enforce classification limits, and remove the unused duplicate config.
+- Add missing-key setup guidance, alt-text/data-transfer documentation, non-super-user regression coverage, and third-party icon license notices.
+
+### v1.2.0
+
+- Add AI Assistant quick actions for Markdown and Textarea fields.
+- Fetch dialog settings after Statamic boots its HTTP client.
+
+### v1.1.0
+
+- Add AI-generated title suggestions with selectable tone, copying, and application to the publish form.
+
+### v1.0.0
+
+- Initial writing assistant with resizing, summarization, translation, classification, and custom prompts.
+- Add image alt-text generation via asset actions and optional upload automation.
+
 ---
 
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE) for more information.
+
+Inline icons are adapted from [Lucide](https://lucide.dev) (ISC), including icons derived from Feather (MIT). Their copyright and permission notices are included in [LICENSE](LICENSE).

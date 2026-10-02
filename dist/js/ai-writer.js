@@ -13,6 +13,8 @@
 (function () {
     'use strict';
 
+    // Inline icons adapted from Lucide (ISC) and Feather (MIT).
+    // Copyright and permission notices are included in the package LICENSE.
     const ICONS = {
         sparkles: `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
         close: `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
@@ -32,8 +34,10 @@
             this.modalEl = null;
             this.floatingBtnEl = null;
             this.activeContext = null;
+            const access = window.Statamic?.$config?.get('aiWriter') || {};
+            this.allowed = access.allowed === true;
             this.settings = {
-                configured: true,
+                configured: access.configured === true,
                 model: 'gpt-4o-mini',
                 default_language: 'de',
                 supported_languages: {
@@ -70,6 +74,7 @@
         }
 
         async init() {
+            if (!this.allowed) return;
             // Statamic 6 creates its HTTP client in Statamic.start(), after addon
             // scripts load; fetching earlier fails and leaves the default settings.
             if (typeof window.Statamic?.booted === 'function') {
@@ -90,7 +95,11 @@
                     this.state.targetLanguage = this.settings.default_language || 'de';
                 }
             } catch (err) {
-                // Keep default settings
+                if (err.response?.status === 403) {
+                    this.allowed = false;
+                    this.hideFloatingButton();
+                    this.close();
+                }
             }
         }
 
@@ -107,12 +116,15 @@
         }
 
         toast(message, type = 'success') {
-            if (window.Statamic?.$toast) {
+            const toast = window.Statamic?.$app?.config?.globalProperties?.$toast || window.Statamic?.$toast;
+            if (toast) {
                 if (type === 'error') {
-                    window.Statamic.$toast.error(message);
+                    toast.error(message);
                 } else {
-                    window.Statamic.$toast.success(message);
+                    toast.success(message);
                 }
+            } else if (type === 'error' && typeof window.alert === 'function') {
+                window.alert(message);
             } else {
                 console.log(`[AI Writer ${type}]: ${message}`);
             }
@@ -208,6 +220,7 @@
         }
 
         handleSelectionChange(e) {
+            if (!this.allowed) return;
             if (this.modalEl) return;
 
             const selection = window.getSelection();
@@ -301,6 +314,11 @@
         }
 
         open(context = {}) {
+            if (!this.allowed) return;
+            if (!this.settings.configured) {
+                this.toast('AI Writer needs setup. Ask an administrator to set OPEN_AI_API_KEY in the site environment.', 'error');
+                return;
+            }
             this.activeContext = context;
             this.state.originalText = context.text || '';
             this.state.generatedText = '';

@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use MuenchDev\StatamicAiWriter\Services\AiService;
+use Statamic\Facades\Site;
 use Statamic\Facades\Taxonomy;
 use Statamic\Facades\Term;
 
@@ -47,7 +48,7 @@ class AiWriterController extends Controller
                 ),
                 'translate' => $this->ai->translate(
                     $validated['text'],
-                    $validated['target_language'] ?? config('ai-writer.default_language', 'de'),
+                    $validated['target_language'] ?? config('statamic-ai-writer.default_language', 'de'),
                     (bool) ($validated['is_title'] ?? false)
                 ),
                 'custom' => $this->ai->customPrompt(
@@ -79,7 +80,7 @@ class AiWriterController extends Controller
         ]);
 
         try {
-            $existingTaxonomies = $this->getExistingTaxonomies();
+            $existingTaxonomies = $this->getExistingTaxonomies($request);
 
             $classification = $this->ai->classify(
                 $validated['content'],
@@ -133,15 +134,14 @@ class AiWriterController extends Controller
      */
     public function settings(Request $request): JsonResponse
     {
-        $apiKey = config('statamic-ai-writer.api_key')
-            ?: (config('ai-writer.api_key') ?: env('OPEN_AI_API_KEY'));
+        $apiKey = config('statamic-ai-writer.api_key');
 
         return response()->json([
             'configured' => ! empty($apiKey),
-            'model' => config('statamic-ai-writer.model') ?: (config('ai-writer.model') ?: env('OPEN_AI_MODEL', 'gpt-4o-mini')),
-            'default_language' => config('statamic-ai-writer.default_language') ?: (config('ai-writer.default_language') ?: 'de'),
-            'supported_languages' => config('statamic-ai-writer.supported_languages') ?: (config('ai-writer.supported_languages') ?: []),
-            'taxonomies' => array_keys($this->getExistingTaxonomies()),
+            'model' => config('statamic-ai-writer.model'),
+            'default_language' => config('statamic-ai-writer.default_language', 'de'),
+            'supported_languages' => config('statamic-ai-writer.supported_languages', []),
+            'taxonomies' => array_keys($this->getExistingTaxonomies($request)),
         ]);
     }
 
@@ -150,7 +150,7 @@ class AiWriterController extends Controller
      *
      * @return array<string, string[]>
      */
-    protected function getExistingTaxonomies(): array
+    protected function getExistingTaxonomies(Request $request): array
     {
         $result = [];
 
@@ -158,8 +158,19 @@ class AiWriterController extends Controller
             $taxonomies = Taxonomy::all();
             foreach ($taxonomies as $taxonomy) {
                 $handle = $taxonomy->handle();
+                if (! in_array($handle, config('statamic-ai-writer.classification.taxonomies', []), true)
+                    || ! $request->user()->can('view', $taxonomy)) {
+                    continue;
+                }
+                $site = $taxonomy->sites()->first(fn ($handle) => ! Site::multiEnabled()
+                    || $request->user()->can('view', Site::get($handle)));
+                if (! $site) {
+                    continue;
+                }
                 $terms = Term::whereTaxonomy($handle)
-                    ->map(fn($t) => $t->title() ?? $t->slug())
+                    ->map(fn ($term) => $term->in($site))
+                    ->filter(fn ($term) => $request->user()->can('view', $term))
+                    ->map(fn ($t) => $t->title() ?? $t->slug())
                     ->values()
                     ->all();
 

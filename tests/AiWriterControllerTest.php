@@ -3,7 +3,7 @@
 namespace MuenchDev\StatamicAiWriter\Tests;
 
 use Illuminate\Support\Facades\Http;
-use MuenchDev\StatamicAiWriter\Services\AiService;
+use Statamic\Facades\User;
 
 class AiWriterControllerTest extends TestCase
 {
@@ -12,13 +12,13 @@ class AiWriterControllerTest extends TestCase
         parent::setUp();
 
         config()->set('statamic.editions.pro', true);
-        config()->set('ai-writer.api_key', 'test-key');
-        config()->set('ai-writer.base_url', 'https://api.openai.com/v1');
-        config()->set('ai-writer.model', 'gpt-4o-mini');
+        config()->set('statamic-ai-writer.api_key', 'test-key');
+        config()->set('statamic-ai-writer.base_url', 'https://api.openai.com/v1');
+        config()->set('statamic-ai-writer.model', 'gpt-4o-mini');
 
-        $user = \Statamic\Facades\User::findByEmail('test@example.com');
+        $user = User::findByEmail('test@example.com');
         if (! $user) {
-            $user = \Statamic\Facades\User::make()->id('9abdf419-ff07-4b33-9c6f-c5e4932cdfc3')->email('test@example.com')->makeSuper();
+            $user = User::make()->id('9abdf419-ff07-4b33-9c6f-c5e4932cdfc3')->email('test@example.com')->makeSuper();
             $user->save();
         }
         $this->actingAs($user);

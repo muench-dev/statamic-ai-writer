@@ -36,6 +36,9 @@
             "MuenchDev\\StatamicAiWriter\\Tests\\": "tests"
         }
     },
+    "scripts": {
+        "test": "phpunit"
+    },
     "require": {
         "php": "^8.2",
         "statamic/cms": "^5.0|^6.0"
