@@ -4,6 +4,8 @@ All notable changes to Statamic AI Writer are documented here.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-02
+
 ### Fixed
 
 - Restore the AI Assistant's Bard button, Markdown/Textarea quick actions, and floating selection trigger on the first Statamic 6 Control Panel load. Read server-provided permissions before `Statamic.config()` runs, while preserving permission checks for unauthorized users.
@@ -74,7 +76,8 @@ All notable changes to Statamic AI Writer are documented here.
 - Initial writing assistant with resizing, summarization, translation, classification, and custom prompts.
 - Image alt-text generation via asset actions and optional upload automation.
 
-[Unreleased]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.0...main
+[Unreleased]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.1...main
+[2.0.1]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.0.0...v1.1.0
