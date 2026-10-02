@@ -81,7 +81,7 @@ When the user explicitly authorizes publication:
 ddev exec --dir=/var/www/html/addons/statamic-ai-writer npm run release
 ```
 
-`npm run release` always includes `--no-increment` for an already prepared version. For later releases, add notes under Unreleased and use the approved increment, e.g. `npm run release:next -- patch`, `minor`, or `major`. Use the prepared-version command only when version metadata and a matching dated changelog section have both already been finalized. `.release-it.json`:
+The configuration's `increment: false` makes bare `release-it` use the already prepared version too. `npm run release` also includes `--no-increment`. For later releases, add notes under Unreleased and use the approved explicit increment, e.g. `npm run release:next -- patch`, `minor`, or `major` (or `release-it patch`, `minor`, or `major`); CLI increments override the configuration default. Use the prepared-version command only when version metadata and a matching dated changelog section have both already been finalized. `.release-it.json`:
 
 - Uses the synchronized package metadata as the current/prepared version; Composer still obtains its distributed version from Git tags.
 - Requires `main`, an upstream, and a clean working tree.
