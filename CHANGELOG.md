@@ -11,6 +11,7 @@ All notable changes to Statamic AI Writer are documented here.
 ### Added
 
 - Startup regression coverage for both source and distributed JavaScript, including delayed configuration, missing permissions, initialized-config precedence, and settings loading after the HTTP client boots.
+- GitHub Actions validation on PHP 8.3 and 8.4, running strict Composer validation, PHP syntax checks, and the PHP test suite for pull requests, main-branch pushes, and release tags.
 
 ## [2.0.0] - 2026-10-02
 

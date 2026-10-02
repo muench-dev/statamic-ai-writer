@@ -236,6 +236,8 @@ Review role permissions: users who previously used the assistant implicitly now 
 
 ## Testing
 
+GitHub Actions runs strict Composer validation, PHP syntax checks, and the PHP test suite on PHP 8.3 and 8.4 for pull requests, pushes to `main`, and `v*` release tags. The workflow can also be started manually.
+
 Run tests inside the addon directory:
 
 ```bash
