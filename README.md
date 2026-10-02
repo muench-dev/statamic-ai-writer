@@ -247,27 +247,7 @@ Community support and bug reports are available through [GitHub Issues](https://
 
 ## Changelog
 
-### Unreleased
-
-- Enforce **Use AI Writer** on every CP endpoint and hide editor integrations from unauthorized users.
-- Restrict existing taxonomy context to configured handles and user visibility; require per-asset edit permission for alt-text actions and authenticated upload automation.
-- Report synchronous alt-text successes, skips, and failures accurately; surface queued failures for retries and preserve successful language fields.
-- Use the published `statamic-ai-writer` configuration consistently, enforce classification limits, and remove the unused duplicate config.
-- Add missing-key setup guidance, alt-text/data-transfer documentation, non-super-user regression coverage, and third-party icon license notices.
-
-### v1.2.0
-
-- Add AI Assistant quick actions for Markdown and Textarea fields.
-- Fetch dialog settings after Statamic boots its HTTP client.
-
-### v1.1.0
-
-- Add AI-generated title suggestions with selectable tone, copying, and application to the publish form.
-
-### v1.0.0
-
-- Initial writing assistant with resizing, summarization, translation, classification, and custom prompts.
-- Add image alt-text generation via asset actions and optional upload automation.
+See [CHANGELOG.md](CHANGELOG.md) for release history and unreleased changes.
 
 ---
 
@@ -276,3 +256,9 @@ Community support and bug reports are available through [GitHub Issues](https://
 The MIT License (MIT). Please see [License File](LICENSE) for more information.
 
 Inline icons are adapted from [Lucide](https://lucide.dev) (ISC), including icons derived from Feather (MIT). Their copyright and permission notices are included in [LICENSE](LICENSE).
+
+### Marketplace artwork
+
+The original Marketplace icon is included as an editable [SVG](resources/artwork/marketplace-icon.svg) and a [1024 × 1024 PNG](resources/artwork/marketplace-icon.png) for uploads. It uses a fountain-pen nib, an AI sparkle, and writing lines, has no external fonts or images, and is covered by this package's MIT license. This artwork is separate from the inline UI icons credited above.
+
+![AI Writer Marketplace icon](resources/artwork/marketplace-icon.png)

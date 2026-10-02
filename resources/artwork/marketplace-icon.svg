@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Original AI Writer artwork. Copyright (c) 2026 Christian Münch. MIT license. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Statamic AI Writer</title>
+  <desc id="description">An apricot fountain-pen nib with a cream AI sparkle above two writing lines on a violet square.</desc>
+  <rect width="1024" height="1024" fill="#5636B8"/>
+  <rect x="432" y="176" width="160" height="64" rx="20" fill="#FFF8EC"/>
+  <path d="M760 174C772 246 788 262 860 278C788 290 772 306 760 378C748 306 732 290 660 278C732 266 748 246 760 174Z" fill="#FFF8EC"/>
+  <path d="M406 272H618L704 486L512 710L320 486Z" fill="#FFC18F"/>
+  <circle cx="512" cy="464" r="40" fill="#5636B8"/>
+  <rect x="500" y="464" width="24" height="246" fill="#5636B8"/>
+  <rect x="320" y="758" width="384" height="40" rx="20" fill="#FFF8EC"/>
+  <rect x="320" y="834" width="256" height="40" rx="20" fill="#C8B8F0"/>
+  <circle cx="664" cy="854" r="20" fill="#FFC18F"/>
+</svg>
