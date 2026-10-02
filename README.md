@@ -90,6 +90,8 @@ OPEN_AI_MODEL=gpt-4o-mini
 
 The assistant shows setup guidance until an API key is configured. After changing cached configuration, run `php artisan config:clear`. For non-super users, grant **Use AI Writer** to their role in the Control Panel. All assistant endpoints enforce this permission. Asset alt-text generation also requires **edit** permission for the asset's container; view-only access is insufficient. Taxonomy context is limited to configured taxonomies the user can view.
 
+Editor integrations read server-provided permissions before Statamic initializes its JavaScript configuration, so authorized users see the assistant on the first Control Panel load. Settings are fetched after Statamic boots its HTTP client. After updating the addon, republish its assets and reload the Control Panel.
+
 ### External requests and costs
 
 AI Writer sends the selected text, instructions, and relevant existing taxonomy terms to the configured provider. Title generation sends the available post content and current title. Translation can also send the post title. Alt-text generation sends the image's full contents as a base64-encoded image, once per language requiring a description. The `image_detail` option affects provider processing, not the amount of image data uploaded. Review your provider's data-retention and privacy terms before using private content or images. Provider credentials and any usage fees are supplied and paid by the site owner; no AI service subscription is included with this add-on. Image generation requires a vision-capable model and endpoint.

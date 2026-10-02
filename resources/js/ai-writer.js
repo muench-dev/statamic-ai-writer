@@ -37,7 +37,9 @@
             this.sessionId = 0;
             this.returnFocusEl = null;
             this.dialogKeydown = (event) => this.handleDialogKeydown(event);
-            const access = window.Statamic?.$config?.get('aiWriter') || {};
+            // Addon scripts run before Statamic.config(); the server-provided
+            // configuration is already available when deferred scripts execute.
+            const access = window.Statamic?.$config?.get('aiWriter') || window.StatamicConfig?.aiWriter || {};
             this.allowed = access.allowed === true;
             this.settings = {
                 configured: access.configured === true,

@@ -4,6 +4,10 @@ All notable changes to Statamic AI Writer are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Read server-provided permissions before Statamic initializes its JavaScript configuration so authorized users see the AI Assistant on the first Control Panel load, while unauthorized users remain excluded.
+
 ## [2.0.0] - 2026-10-02
 
 ### Changed
