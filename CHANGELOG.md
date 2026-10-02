@@ -6,7 +6,11 @@ All notable changes to Statamic AI Writer are documented here.
 
 ### Fixed
 
-- Read server-provided permissions before Statamic initializes its JavaScript configuration so authorized users see the AI Assistant on the first Control Panel load, while unauthorized users remain excluded.
+- Restore the AI Assistant's Bard button, Markdown/Textarea quick actions, and floating selection trigger on the first Statamic 6 Control Panel load. Read server-provided permissions before `Statamic.config()` runs, while preserving permission checks for unauthorized users.
+
+### Added
+
+- Startup regression coverage for both source and distributed JavaScript, including delayed configuration, missing permissions, initialized-config precedence, and settings loading after the HTTP client boots.
 
 ## [2.0.0] - 2026-10-02
 
