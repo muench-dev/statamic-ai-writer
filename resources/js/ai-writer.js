@@ -34,6 +34,9 @@
             this.modalEl = null;
             this.floatingBtnEl = null;
             this.activeContext = null;
+            this.sessionId = 0;
+            this.returnFocusEl = null;
+            this.dialogKeydown = (event) => this.handleDialogKeydown(event);
             const access = window.Statamic?.$config?.get('aiWriter') || {};
             this.allowed = access.allowed === true;
             this.settings = {
@@ -319,6 +322,11 @@
                 this.toast('AI Writer needs setup. Ask an administrator to set OPEN_AI_API_KEY in the site environment.', 'error');
                 return;
             }
+            const opener = this.modalEl?.contains?.(document.activeElement) ? this.returnFocusEl : document.activeElement;
+            this.close();
+            this.sessionId++;
+            this.returnFocusEl = opener;
+            document.addEventListener('keydown', this.dialogKeydown, true);
             this.activeContext = context;
             this.state.originalText = context.text || '';
             this.state.generatedText = '';
@@ -344,24 +352,70 @@
         }
 
         close() {
+            this.sessionId++;
+            this.state.loading = false;
+            this.activeContext = null;
+            document.removeEventListener?.('keydown', this.dialogKeydown, true);
             if (this.modalEl) {
                 this.modalEl.remove();
                 this.modalEl = null;
             }
+            if (this.returnFocusEl?.isConnected) {
+                this.returnFocusEl.focus({ preventScroll: true });
+            }
+            this.returnFocusEl = null;
+        }
+
+        isCurrentSession(sessionId) {
+            return this.sessionId === sessionId && this.modalEl !== null;
+        }
+
+        dialogFocusableElements() {
+            return [...this.modalEl.querySelectorAll(
+                'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )].filter(element => !element.disabled && element.getClientRects().length > 0);
+        }
+
+        handleDialogKeydown(event) {
+            if (!this.modalEl) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                this.close();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+
+            const elements = this.dialogFocusableElements();
+            const first = elements[0];
+            const last = elements[elements.length - 1];
+            if (!first) {
+                event.preventDefault();
+                this.modalEl.querySelector('[role="dialog"]').focus();
+            } else if (!this.modalEl.contains(document.activeElement)
+                || (event.shiftKey && document.activeElement === first)
+                || (!event.shiftKey && document.activeElement === last)) {
+                event.preventDefault();
+                (event.shiftKey ? last : first).focus();
+            }
         }
 
         renderModal() {
-            this.close();
+            // Re-rendering a dialog keeps its session and keyboard handler alive.
+            const focused = this.modalEl?.contains(document.activeElement) ? document.activeElement : null;
+            let focusSelector = focused?.id ? `#${focused.id}` : null;
+            for (const attribute of ['data-tab', 'data-action', 'data-subaction', 'data-summary']) {
+                if (!focusSelector && focused?.hasAttribute(attribute)) {
+                    focusSelector = `[${attribute}="${focused.getAttribute(attribute)}"]`;
+                }
+            }
+            this.modalEl?.remove();
 
             this.modalEl = document.createElement('div');
             this.modalEl.className = 'statamic-ai-modal-overlay';
             this.modalEl.addEventListener('click', (e) => {
                 if (e.target === this.modalEl) this.close();
             });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && this.modalEl) this.close();
-            }, { once: true });
 
             const inputText = this.state.tab === 'titles'
                 ? this.getFullEditorContent().trim() || this.state.originalText
@@ -371,11 +425,11 @@
                 : 0;
 
             const modalHtml = `
-                <div class="statamic-ai-modal" role="dialog" aria-modal="true">
+                <div class="statamic-ai-modal" role="dialog" aria-modal="true" aria-labelledby="statamic-ai-dialog-title" tabindex="-1">
                     <div class="statamic-ai-header">
                         <div class="statamic-ai-title-wrap">
                             <span class="statamic-ai-icon-badge">${ICONS.sparkles}</span>
-                            <h3 class="statamic-ai-title">AI Writer Assistant</h3>
+                            <h3 class="statamic-ai-title" id="statamic-ai-dialog-title">AI Writer Assistant</h3>
                             <span class="statamic-ai-model-tag">${this.escapeHtml(this.settings.model)}</span>
                         </div>
                         <button type="button" class="statamic-ai-close-btn" data-action="close" title="Close (Esc)">
@@ -434,6 +488,11 @@
             document.body.appendChild(this.modalEl);
 
             this.bindEvents();
+            const preferredFocus = focusSelector ? this.modalEl.querySelector(focusSelector) : null;
+            const focusTarget = preferredFocus && !preferredFocus.disabled
+                ? preferredFocus
+                : this.dialogFocusableElements()[0] || this.modalEl.querySelector('[role="dialog"]');
+            focusTarget.focus({ preventScroll: true });
         }
 
         renderTabContent() {
@@ -842,6 +901,7 @@
         }
 
         async generate() {
+            if (this.state.loading) return;
             if (!this.state.originalText.trim()) {
                 this.toast('Please select some text in the editor first.', 'error');
                 return;
@@ -850,6 +910,9 @@
             this.state.loading = true;
             this.state.error = null;
             this.renderModal();
+            const sessionId = this.sessionId;
+            const postTitle = this.state.postTitle;
+            const translateTitle = this.state.tab === 'translate' && this.state.translateTitle && postTitle;
 
             try {
                 let payload = {
@@ -871,22 +934,25 @@
                 }
 
                 const response = await this.axios().post(this.cpUrl('ai-writer/process'), payload);
+                if (!this.isCurrentSession(sessionId)) return;
                 if (response.data && response.data.success) {
                     this.state.generatedText = response.data.result;
 
                     // If translate title is selected, translate post title too
-                    if (this.state.tab === 'translate' && this.state.translateTitle && this.state.postTitle) {
+                    if (translateTitle) {
                         try {
                             const titleRes = await this.axios().post(this.cpUrl('ai-writer/process'), {
-                                text: this.state.postTitle,
+                                text: postTitle,
                                 action: 'translate',
-                                target_language: this.state.targetLanguage,
+                                target_language: payload.target_language,
                                 is_title: true,
                             });
+                            if (!this.isCurrentSession(sessionId)) return;
                             if (titleRes.data && titleRes.data.success) {
                                 this.state.translatedTitle = titleRes.data.result;
                             }
                         } catch (titleErr) {
+                            if (!this.isCurrentSession(sessionId)) return;
                             console.error('Failed translating post title:', titleErr);
                         }
                     }
@@ -894,14 +960,19 @@
                     this.state.error = response.data?.error || 'Unknown error occurred.';
                 }
             } catch (err) {
-                this.state.error = err.response?.data?.error || err.message || 'API request failed.';
+                if (this.isCurrentSession(sessionId)) {
+                    this.state.error = err.response?.data?.error || err.message || 'API request failed.';
+                }
             } finally {
-                this.state.loading = false;
-                this.renderModal();
+                if (this.isCurrentSession(sessionId)) {
+                    this.state.loading = false;
+                    this.renderModal();
+                }
             }
         }
 
         async runClassification() {
+            if (this.state.loading) return;
             const content = this.state.originalText.trim() || this.getFullEditorContent();
             if (!content) {
                 this.toast('No content available to classify.', 'error');
@@ -911,11 +982,13 @@
             this.state.loading = true;
             this.state.error = null;
             this.renderModal();
+            const sessionId = this.sessionId;
 
             try {
                 const response = await this.axios().post(this.cpUrl('ai-writer/classify'), {
                     content: content,
                 });
+                if (!this.isCurrentSession(sessionId)) return;
 
                 if (response.data && response.data.success) {
                     this.state.classificationTags = response.data.tags || [];
@@ -924,10 +997,14 @@
                     this.state.error = response.data?.error || 'Classification failed.';
                 }
             } catch (err) {
-                this.state.error = err.response?.data?.error || err.message || 'Classification request failed.';
+                if (this.isCurrentSession(sessionId)) {
+                    this.state.error = err.response?.data?.error || err.message || 'Classification request failed.';
+                }
             } finally {
-                this.state.loading = false;
-                this.renderModal();
+                if (this.isCurrentSession(sessionId)) {
+                    this.state.loading = false;
+                    this.renderModal();
+                }
             }
         }
 
@@ -944,7 +1021,7 @@
             this.state.error = null;
             this.state.titleSuggestions = [];
             this.renderModal();
-            const modal = this.modalEl;
+            const sessionId = this.sessionId;
 
             try {
                 const response = await this.axios().post(this.cpUrl('ai-writer/titles'), {
@@ -952,17 +1029,17 @@
                     title: this.getTitleInput()?.value || '',
                     tone: this.state.titleTone,
                 });
-                if (this.modalEl !== modal) return;
+                if (!this.isCurrentSession(sessionId)) return;
                 if (!response.data?.success || !Array.isArray(response.data.titles) || !response.data.titles.length) {
                     throw new Error(response.data?.error || 'No title suggestions were returned. Please try again.');
                 }
                 this.state.titleSuggestions = response.data.titles;
             } catch (err) {
-                if (this.modalEl === modal) {
+                if (this.isCurrentSession(sessionId)) {
                     this.state.error = err.response?.data?.error || err.response?.data?.message || err.message || 'Title generation failed.';
                 }
             } finally {
-                if (this.modalEl === modal) {
+                if (this.isCurrentSession(sessionId)) {
                     this.state.loading = false;
                     this.renderModal();
                 }

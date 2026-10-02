@@ -70,7 +70,9 @@ class GenerateAltTextJob implements ShouldQueue
 
         if ($this->result['generated'] > 0) {
             try {
-                $asset->save();
+                if ($asset->save() === false) {
+                    throw new Exception('Alt text could not be saved because the asset save was cancelled.');
+                }
             } catch (Exception $e) {
                 $this->result['failed'] += $this->result['generated'];
                 $this->result['generated'] = 0;

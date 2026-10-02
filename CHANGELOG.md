@@ -2,7 +2,14 @@
 
 All notable changes to Statamic AI Writer are documented here.
 
-## Unreleased
+## [Unreleased]
+
+## [2.0.0] - 2026-10-02
+
+### Changed
+
+- Require Statamic 6 and PHP 8.3+; drop Statamic 5 and PHP 8.2 compatibility.
+- Standardize the development test stack on Testbench 10 and PHPUnit 12.
 
 ### Added
 
@@ -12,9 +19,15 @@ All notable changes to Statamic AI Writer are documented here.
 - A `composer test` command for the PHP test suite.
 - Documentation for alt-text generation, multilingual asset fields, queues, provider data transfers, and upgrading from v1.2.0.
 - Lucide ISC and Feather MIT copyright and license notices for inline UI icons.
+- A release-it workflow with curated changelog updates, pre-release checks, Git tags, and GitHub releases; npm publishing is disabled.
+- Package-specific development and release instructions in `AGENTS.md`.
 
 ### Fixed
 
+- Ignore late responses from closed or replaced assistant sessions, including follow-up title translations, and prevent duplicate in-flight requests.
+- Keep Escape dismissal active, contain keyboard focus in the assistant, preserve focus across redraws, and restore focus when closing.
+- Keep result actions visible and usable on narrow screens.
+- Report cancelled asset saves as failures instead of successfully generated alt text.
 - Enforce **Use AI Writer** on every Control Panel endpoint and hide editor integrations from unauthorized users.
 - Limit existing taxonomy context to configured handles, visible taxonomies, and accessible site localizations.
 - Require **Use AI Writer** and per-asset edit access for alt-text actions and authenticated upload automation.
@@ -28,7 +41,7 @@ All notable changes to Statamic AI Writer are documented here.
 
 - The unused duplicate `config/ai-writer.php` file and reads from its configuration namespace. See the README's upgrade instructions for migrating custom settings.
 
-## v1.2.0
+## [1.2.0]
 
 ### Added
 
@@ -38,16 +51,22 @@ All notable changes to Statamic AI Writer are documented here.
 
 - Fetch dialog settings after Statamic boots its HTTP client.
 
-## v1.1.0
+## [1.1.0]
 
 ### Added
 
 - AI-generated title suggestions with balanced, professional, casual, and creative tones.
 - Copy headline suggestions or apply them to the post title in the publish form.
 
-## v1.0.0
+## [1.0.0]
 
 ### Added
 
 - Initial writing assistant with resizing, summarization, translation, classification, and custom prompts.
 - Image alt-text generation via asset actions and optional upload automation.
+
+[Unreleased]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.0...main
+[2.0.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.2.0...v2.0.0
+[1.2.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/muench-dev/statamic-ai-writer/releases/tag/v1.0.0

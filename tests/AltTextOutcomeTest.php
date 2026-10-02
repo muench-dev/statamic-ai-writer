@@ -86,7 +86,7 @@ class AltTextOutcomeTest extends TestCase
     {
         $asset = $this->asset(['alt' => 'Old description.']);
         $asset->shouldReceive('set')->once()->with('alt', 'New description.');
-        $asset->shouldReceive('save')->once();
+        $asset->shouldReceive('save')->once()->andReturn(true);
         $ai = Mockery::mock(AiService::class);
         $ai->shouldReceive('generateAltText')->once()->with($asset, 'en')->andReturn('New description.');
         $this->app->instance(AiService::class, $ai);
@@ -98,7 +98,7 @@ class AltTextOutcomeTest extends TestCase
     {
         $asset = $this->asset();
         $asset->shouldReceive('set')->once()->with('alt_en', 'Description.');
-        $asset->shouldReceive('save')->once();
+        $asset->shouldReceive('save')->once()->andReturn(true);
         $ai = Mockery::mock(AiService::class);
         $ai->shouldReceive('generateAltText')->with($asset, 'en')->andReturn('Description.');
         $ai->shouldReceive('generateAltText')->with($asset, 'de')->andReturn('');
@@ -110,5 +110,35 @@ class AltTextOutcomeTest extends TestCase
             $this->assertStringContainsString('failed to generate', $e->getMessage());
         }
         $this->assertSame(['generated' => 1, 'skipped' => 0, 'failed' => 1], $job->result);
+    }
+
+    public function test_sync_action_reports_a_cancelled_save_as_failure(): void
+    {
+        $asset = $this->asset();
+        $asset->shouldReceive('set')->once()->with('alt', 'Description.');
+        $asset->shouldReceive('save')->once()->andReturn(false);
+        $ai = Mockery::mock(AiService::class);
+        $ai->shouldReceive('generateAltText')->once()->andReturn('Description.');
+        $this->app->instance(AiService::class, $ai);
+
+        $this->expectExceptionMessage('Generated 0 alt texts. Skipped 0 existing alt texts. Failed: 1.');
+        (new GenerateAltTextAction)->run(collect([$asset]), []);
+    }
+
+    public function test_queued_job_counts_all_unpersisted_fields_as_failed_when_saving_is_cancelled(): void
+    {
+        $asset = $this->asset();
+        $asset->shouldReceive('set')->twice();
+        $asset->shouldReceive('save')->once()->andReturn(false);
+        $ai = Mockery::mock(AiService::class);
+        $ai->shouldReceive('generateAltText')->twice()->andReturn('Description.');
+        $job = new GenerateAltTextJob($asset->id(), ['en' => 'alt_en', 'de' => 'alt_de']);
+        try {
+            $job->handle($ai);
+            $this->fail('Cancelled saves must fail the queued job.');
+        } catch (Exception $e) {
+            $this->assertStringContainsString('save was cancelled', $e->getMessage());
+        }
+        $this->assertSame(['generated' => 0, 'skipped' => 0, 'failed' => 2], $job->result);
     }
 }

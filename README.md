@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://statamic.com" style="text-decoration: none">
-    <img src="https://img.shields.io/badge/Statamic-5.0%2B%20%7C%206.0%2B-FF269E?style=flat-square" alt="Statamic 5 & 6" />
+    <img src="https://img.shields.io/badge/Statamic-6.0%2B-FF269E?style=flat-square" alt="Statamic 6" />
   </a>
   <a href="https://packagist.org/packages/muench-dev/statamic-ai-writer" style="text-decoration: none">
     <img src="https://img.shields.io/packagist/v/muench-dev/statamic-ai-writer?style=flat-square&label=Release" alt="Latest Version" />
@@ -61,10 +61,12 @@ Statamic AI Writer integrates seamlessly with your editor experience (Bard, Mark
 
 ## Installation
 
+AI Writer **v2.0.0** requires **Statamic 6** and **PHP 8.3 or newer**. Statamic 5 is no longer supported. Composer availability follows publication of the `v2.0.0` Git tag.
+
 Install the addon via Composer:
 
 ```bash
-composer require muench-dev/statamic-ai-writer
+composer require muench-dev/statamic-ai-writer:^2.0
 ```
 
 Publish the assets and configuration file:
@@ -168,6 +170,8 @@ return [
 - Review the generated result in the editable preview pane.
 - Click **Replace Selection** or **Insert Below** to insert the modified text back into Bard.
 
+The assistant moves keyboard focus into the dialog, keeps Tab and Shift+Tab inside it, and closes with Escape or Cancel. Closing restores focus to the control that opened it. Responses from a closed or replaced session are ignored, and result actions wrap into a compact layout on small screens.
+
 ### 2. In Markdown / Text Fields
 - Click the **AI Assistant** quick action (✨) in the field header of any Markdown or Textarea field. The current selection is preloaded; without a selection the whole field is used, and **Replace Selection** replaces the whole field.
 - Alternatively, highlight any text in the editor.
@@ -218,9 +222,13 @@ To use different field names, configure a language-to-field mapping:
 'field_mapping' => ['en' => 'alt', 'de' => 'alt_de'],
 ```
 
-With `QUEUE_CONNECTION=sync`, generation runs immediately and reports generated, skipped, and failed alt-field counts. Missing credentials and provider failures are reported as errors, including partial failures. With an asynchronous queue, the action only confirms that work was queued; it does not claim generation succeeded. Run a worker for the configured queue, for example `php artisan queue:work --queue=default`, and inspect application logs and `php artisan queue:failed` for failures. Successful language fields are saved even if another language fails; retrying without overwrite skips those already generated.
+With `QUEUE_CONNECTION=sync`, generation runs immediately and reports generated, skipped, and failed alt-field counts. Missing credentials, provider failures, and cancelled asset saves are reported as errors, including partial failures. Fields count as generated only after the asset save succeeds. With an asynchronous queue, the action only confirms that work was queued; it does not claim generation succeeded. Run a worker for the configured queue, for example `php artisan queue:work --queue=default`, and inspect application logs and `php artisan queue:failed` for failures. Successful language fields are saved even if another language fails; retrying without overwrite skips those already generated.
 
-### Updating from v1.2.0
+### Upgrading to v2.0.0
+
+This is a breaking compatibility update: upgrade your site to **Statamic 6** and **PHP 8.3+** before installing AI Writer v2. Once v2.0.0 is published, update with `composer require muench-dev/statamic-ai-writer:^2.0 --with-all-dependencies`.
+
+Statamic 5 sites can remain on the older v1 releases for compatibility, but v1.2.0 predates the authorization and failure-reporting fixes listed in the changelog. These fixes are not backported to v1.
 
 Review role permissions: users who previously used the assistant implicitly now need **Use AI Writer**. All configuration is read from `statamic-ai-writer`; move any custom settings previously placed in `config/ai-writer.php` into `config/statamic-ai-writer.php`. The unused bundled `ai-writer.php` config has been removed. Keep your existing published configuration and merge any missing defaults rather than overwriting it. Republish the updated assets with `php artisan vendor:publish --tag="statamic-ai-writer" --force` and clear cached configuration.
 
@@ -239,7 +247,26 @@ Or using PHPUnit:
 ./vendor/bin/phpunit
 ```
 
-Run the frontend title-generation checks with `npm test`, and rebuild the distributed assets with `npm run build` after changing JavaScript or CSS.
+Run the frontend checks with `npm test`, and rebuild the distributed assets with `npm run build` after changing JavaScript or CSS. `npm run verify` runs Composer validation plus both test suites. The package's development setup uses Testbench 10 and PHPUnit 12; run these commands with PHP 8.3+ in the DDEV container.
+
+## Releasing
+
+Releases use **release-it**, not npm publishing. Composer derives the package version from Git tags. `package.json` records the current or prepared release version for the asset/release tooling and stays synchronized with `package-lock.json`.
+
+Install the release tools with `npm ci` using a supported Node version (Node 24.15+ is supported). Keep curated notes under `## [Unreleased]` in `CHANGELOG.md`. Build and commit the distributed assets before releasing. Release-it requires a clean `main` branch with an upstream, runs the build and validation checks, bumps the package/lock versions, dates the changelog, creates a `vX.Y.Z` tag, pushes the release commit/tag, and creates a GitHub release from the changelog notes. It never publishes to npm.
+
+The breaking **v2.0.0** update already has finalized changelog notes and version metadata. Publish that prepared version without incrementing it again:
+
+```bash
+npm run release -- --no-increment --dry-run
+npm run release -- --no-increment
+```
+
+Run these inside the DDEV container, from the add-on directory. Supply `GITHUB_TOKEN` to the container environment with permission to create releases, and ensure Git push authentication is available there. A dry run previews release actions without writing versions, creating commits/tags, pushing, or publishing; run `npm run verify` separately because dry runs preview validation hooks too.
+
+For subsequent releases, add notes under Unreleased and use `npm run release -- patch`, `minor`, or `major` as appropriate; release-it will increment metadata and finalize those notes automatically. Use `--no-increment` only when both the target version and its dated changelog section have already been prepared.
+
+After release, verify that Packagist sees the new tag, install that version in an isolated Statamic 6 site, and resubmit the tagged release to the Statamic Marketplace. See [AGENTS.md](AGENTS.md) for the complete maintainer workflow.
 
 ## Support
 
