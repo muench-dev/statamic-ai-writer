@@ -4,6 +4,8 @@ All notable changes to Statamic AI Writer are documented here.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-05
+
 ### Added
 
 - English and German Control Panel translations for the assistant, editor integrations, notifications, permissions, alt-text actions, and package-owned provider errors. Interface language follows the Control Panel locale independently of content generation settings, with publishable translation overrides.
@@ -84,7 +86,8 @@ All notable changes to Statamic AI Writer are documented here.
 - Initial writing assistant with resizing, summarization, translation, classification, and custom prompts.
 - Image alt-text generation via asset actions and optional upload automation.
 
-[Unreleased]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.1...main
+[Unreleased]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.1.0...main
+[2.1.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/muench-dev/statamic-ai-writer/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/muench-dev/statamic-ai-writer/compare/v1.1.0...v1.2.0
