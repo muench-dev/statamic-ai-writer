@@ -76,6 +76,18 @@ php artisan vendor:publish --tag="statamic-ai-writer"
 php artisan vendor:publish --tag="statamic-ai-writer-config"
 ```
 
+## Control Panel languages
+
+The assistant, editor buttons, notifications, permissions, and alt-text actions support **English (`en`)** and **German (`de`)**, following the current Control Panel language. The assistant's script translations explicitly use the CP locale so Statamic's English fallback loading does not switch its labels to English. This is independent of the content translation target and the configured alt-text languages. English is the fallback for untranslated interface strings; AI-generated content and external provider error details are not translated by the interface.
+
+After updating or locally rebuilding the addon JavaScript, republish the assets with `php artisan vendor:publish --tag="statamic-ai-writer" --force` and reload the Control Panel. The CP serves the published files in `public/vendor/statamic-ai-writer/`, not the package's `dist/` files directly.
+
+Translations live in the package's root `lang/{locale}/messages.php` directory and use Statamic's standard `statamic-ai-writer::messages` namespace. To customize them, publish the language files and edit `lang/vendor/statamic-ai-writer/{locale}/messages.php`:
+
+```bash
+php artisan vendor:publish --tag="statamic-ai-writer-translations"
+```
+
 ---
 
 ## Configuration

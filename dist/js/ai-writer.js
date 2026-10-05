@@ -41,6 +41,7 @@
             // configuration is already available when deferred scripts execute.
             const access = window.Statamic?.$config?.get('aiWriter') || window.StatamicConfig?.aiWriter || {};
             this.allowed = access.allowed === true;
+            this.translations = access.translations || {};
             this.settings = {
                 configured: access.configured === true,
                 model: 'gpt-4o-mini',
@@ -120,6 +121,19 @@
             return window.Statamic?.$app?.config?.globalProperties?.$axios || window.Statamic?.$axios || window.axios;
         }
 
+        // Script data is available before Statamic's JavaScript translator boots.
+        // Keep an English fallback for missing keys and interpolate before escaping.
+        t(key, fallback, replacements = {}) {
+            const message = this.translations[key] ?? fallback;
+            return String(message).replace(/:([a-z_]+)/g, (placeholder, name) =>
+                Object.hasOwn(replacements, name) ? String(replacements[name]) : placeholder
+            );
+        }
+
+        h(key, fallback, replacements = {}) {
+            return this.escapeHtml(this.t(key, fallback, replacements));
+        }
+
         toast(message, type = 'success') {
             const toast = window.Statamic?.$app?.config?.globalProperties?.$toast || window.Statamic?.$toast;
             if (toast) {
@@ -143,7 +157,7 @@
             window.Statamic.$bard.buttons((buttons, button) => {
                 return {
                     name: 'aiwriter',
-                    text: 'AI Assistant',
+                    text: this.t('assistant', 'AI Assistant'),
                     html: ICONS.sparkles,
                     command: (editor) => {
                         this.openFromBard(editor);
@@ -161,7 +175,7 @@
 
             ['markdown-fieldtype', 'textarea-fieldtype'].forEach((binding) => {
                 window.Statamic.$fieldActions.add(binding, {
-                    title: 'AI Assistant',
+                    title: this.t('assistant', 'AI Assistant'),
                     icon: 'ai-sparks',
                     quick: true,
                     run: (payload) => this.openFromField(payload),
@@ -266,7 +280,7 @@
             if (!this.floatingBtnEl) {
                 this.floatingBtnEl = document.createElement('button');
                 this.floatingBtnEl.className = 'statamic-ai-writer-floating-btn';
-                this.floatingBtnEl.innerHTML = `${ICONS.sparkles} <span>Ask AI</span>`;
+                this.floatingBtnEl.innerHTML = `${ICONS.sparkles} <span>${this.h('ask_ai', 'Ask AI')}</span>`;
                 this.floatingBtnEl.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -321,7 +335,7 @@
         open(context = {}) {
             if (!this.allowed) return;
             if (!this.settings.configured) {
-                this.toast('AI Writer needs setup. Ask an administrator to set OPEN_AI_API_KEY in the site environment.', 'error');
+                this.toast(this.t('setup_required', 'AI Writer needs setup. Ask an administrator to set OPEN_AI_API_KEY in the site environment.'), 'error');
                 return;
             }
             const opener = this.modalEl?.contains?.(document.activeElement) ? this.returnFocusEl : document.activeElement;
@@ -431,32 +445,32 @@
                     <div class="statamic-ai-header">
                         <div class="statamic-ai-title-wrap">
                             <span class="statamic-ai-icon-badge">${ICONS.sparkles}</span>
-                            <h3 class="statamic-ai-title" id="statamic-ai-dialog-title">AI Writer Assistant</h3>
+                            <h3 class="statamic-ai-title" id="statamic-ai-dialog-title">${this.h('dialog_title', 'AI Writer Assistant')}</h3>
                             <span class="statamic-ai-model-tag">${this.escapeHtml(this.settings.model)}</span>
                         </div>
-                        <button type="button" class="statamic-ai-close-btn" data-action="close" title="Close (Esc)">
+                        <button type="button" class="statamic-ai-close-btn" data-action="close" title="${this.h('close', 'Close (Esc)')}">
                             ${ICONS.close}
                         </button>
                     </div>
 
                     <div class="statamic-ai-tabs">
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'resize' ? 'active' : ''}" data-tab="resize">
-                            ${ICONS.rephrase} Content Resizing
+                            ${ICONS.rephrase} ${this.h('resize', 'Content Resizing')}
                         </button>
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'summarize' ? 'active' : ''}" data-tab="summarize">
-                            ${ICONS.summarize} Summarization
+                            ${ICONS.summarize} ${this.h('summarize', 'Summarization')}
                         </button>
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'translate' ? 'active' : ''}" data-tab="translate">
-                            ${ICONS.translate} Translation
+                            ${ICONS.translate} ${this.h('translate', 'Translation')}
                         </button>
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'classify' ? 'active' : ''}" data-tab="classify">
-                            ${ICONS.classify} Classification
+                            ${ICONS.classify} ${this.h('classify', 'Classification')}
                         </button>
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'custom' ? 'active' : ''}" data-tab="custom">
-                            ${ICONS.sparkles} Custom Prompt
+                            ${ICONS.sparkles} ${this.h('custom', 'Custom Prompt')}
                         </button>
                         <button type="button" class="statamic-ai-tab ${this.state.tab === 'titles' ? 'active' : ''}" data-tab="titles">
-                            ${ICONS.sparkles} Title Generation
+                            ${ICONS.sparkles} ${this.h('titles', 'Title Generation')}
                         </button>
                     </div>
 
@@ -465,9 +479,9 @@
 
                         <div class="statamic-ai-preview-box">
                             <div class="statamic-ai-preview-header">
-                                <span>Input Text (${wordsCount} words, ${inputText.length} chars)</span>
+                                <span>${this.h('input_text', 'Input Text (:words words, :chars chars)', { words: wordsCount, chars: inputText.length })}</span>
                             </div>
-                            <div class="statamic-ai-preview-content">${this.escapeHtml(inputText) || '<em class="opacity-50">No text selected</em>'}</div>
+                            <div class="statamic-ai-preview-content">${this.escapeHtml(inputText) || `<em class="opacity-50">${this.h('no_selection', 'No text selected')}</em>`}</div>
                         </div>
 
                         ${this.renderResultArea()}
@@ -476,7 +490,7 @@
                     <div class="statamic-ai-footer">
                         <div class="statamic-ai-footer-left">
                             <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary" data-action="close">
-                                Cancel
+                                ${this.h('cancel', 'Cancel')}
                             </button>
                         </div>
                         <div class="statamic-ai-footer-right">
@@ -501,13 +515,13 @@
             if (this.state.tab === 'titles') {
                 return `
                     <div>
-                        <label for="statamic-ai-title-tone" class="block text-xs font-semibold uppercase text-gray-500 mb-1">Headline Tone</label>
+                        <label for="statamic-ai-title-tone" class="block text-xs font-semibold uppercase text-gray-500 mb-1">${this.h('headline_tone', 'Headline Tone')}</label>
                         <select class="statamic-ai-select" id="statamic-ai-title-tone" ${this.state.loading ? 'disabled' : ''}>
                             ${['balanced', 'professional', 'casual', 'creative'].map(tone => `
-                                <option value="${tone}" ${this.state.titleTone === tone ? 'selected' : ''}>${tone.charAt(0).toUpperCase() + tone.slice(1)}</option>
+                                <option value="${tone}" ${this.state.titleTone === tone ? 'selected' : ''}>${this.h(`tone_${tone}`, tone.charAt(0).toUpperCase() + tone.slice(1))}</option>
                             `).join('')}
                         </select>
-                        <p class="text-xs text-gray-500 mt-2">Brainstorm headlines from your content. Choose a suggestion to update the post title, or copy it.</p>
+                        <p class="text-xs text-gray-500 mt-2">${this.h('titles_help', 'Brainstorm headlines from your content. Choose a suggestion to update the post title, or copy it.')}</p>
                     </div>
                 `;
             }
@@ -515,16 +529,16 @@
             if (this.state.tab === 'resize') {
                 return `
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-2">Resizing Mode</label>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-2">${this.h('resizing_mode', 'Resizing Mode')}</label>
                         <div class="statamic-ai-pill-group">
                             <button type="button" class="statamic-ai-pill ${this.state.subAction === 'shorten' ? 'selected' : ''}" data-subaction="shorten">
-                                ${ICONS.shorten} Shorten
+                                ${ICONS.shorten} ${this.h('shorten', 'Shorten')}
                             </button>
                             <button type="button" class="statamic-ai-pill ${this.state.subAction === 'expand' ? 'selected' : ''}" data-subaction="expand">
-                                ${ICONS.expand} Expand
+                                ${ICONS.expand} ${this.h('expand', 'Expand')}
                             </button>
                             <button type="button" class="statamic-ai-pill ${this.state.subAction === 'rephrase' ? 'selected' : ''}" data-subaction="rephrase">
-                                ${ICONS.rephrase} Rephrase
+                                ${ICONS.rephrase} ${this.h('rephrase', 'Rephrase')}
                             </button>
                         </div>
                     </div>
@@ -534,16 +548,16 @@
             if (this.state.tab === 'summarize') {
                 return `
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-2">Summary Format</label>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-2">${this.h('summary_format', 'Summary Format')}</label>
                         <div class="statamic-ai-pill-group">
                             <button type="button" class="statamic-ai-pill ${this.state.summaryFormat === 'bullets' ? 'selected' : ''}" data-summary="bullets">
-                                * Bullet Points
+                                * ${this.h('bullets', 'Bullet Points')}
                             </button>
                             <button type="button" class="statamic-ai-pill ${this.state.summaryFormat === 'paragraph' ? 'selected' : ''}" data-summary="paragraph">
-                                📝 Paragraph Overview
+                                📝 ${this.h('paragraph', 'Paragraph Overview')}
                             </button>
                             <button type="button" class="statamic-ai-pill ${this.state.summaryFormat === 'tldr' ? 'selected' : ''}" data-summary="tldr">
-                                ⚡ One-line TL;DR
+                                ⚡ ${this.h('tldr', 'One-line TL;DR')}
                             </button>
                         </div>
                     </div>
@@ -553,13 +567,13 @@
             if (this.state.tab === 'translate') {
                 const languages = this.settings.supported_languages || {};
                 const options = Object.entries(languages).map(([code, name]) => {
-                    return `<option value="${code}" ${this.state.targetLanguage === code ? 'selected' : ''}>${name}</option>`;
+                    return `<option value="${this.escapeHtml(code)}" ${this.state.targetLanguage === code ? 'selected' : ''}>${this.h(`language_${code}`, name)}</option>`;
                 }).join('');
 
                 return `
                     <div class="flex flex-col gap-3">
                         <div>
-                            <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Target Language</label>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">${this.h('target_language', 'Target Language')}</label>
                             <select class="statamic-ai-select" id="statamic-ai-lang-select">
                                 ${options}
                             </select>
@@ -567,7 +581,7 @@
                         ${this.state.postTitle ? `
                             <label class="statamic-ai-checkbox-label">
                                 <input type="checkbox" id="statamic-ai-trans-title" ${this.state.translateTitle ? 'checked' : ''}>
-                                <span>Also translate Post Title (<em>"${this.escapeHtml(this.state.postTitle)}"</em>)</span>
+                                <span>${this.h('translate_title', 'Also translate Post Title')} (<em>"${this.escapeHtml(this.state.postTitle)}"</em>)</span>
                             </label>
                         ` : ''}
                     </div>
@@ -578,7 +592,7 @@
                 return `
                     <div class="flex flex-col gap-2">
                         <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Suggests relevant tags and categories based on the content. Click any tag to copy it.
+                            ${this.h('classify_help', 'Suggests relevant tags and categories based on the content. Click any tag to copy it.')}
                         </p>
                     </div>
                 `;
@@ -587,10 +601,10 @@
             if (this.state.tab === 'custom') {
                 return `
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Instruction</label>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">${this.h('instruction', 'Instruction')}</label>
                         <input type="text" class="statamic-ai-input" id="statamic-ai-custom-input"
                             value="${this.escapeHtml(this.state.customPrompt)}"
-                            placeholder="e.g., Fix grammar and spelling, make tone more professional, convert into table...">
+                            placeholder="${this.h('prompt_placeholder', 'e.g., Fix grammar and spelling, make tone more professional, convert into table...')}">
                     </div>
                 `;
             }
@@ -603,7 +617,7 @@
                 return `
                     <div class="statamic-ai-loading">
                         <div class="statamic-ai-spinner"></div>
-                        <span>Processing with ${this.escapeHtml(this.settings.model)}...</span>
+                        <span>${this.h('processing', 'Processing with :model...', { model: this.settings.model })}</span>
                     </div>
                 `;
             }
@@ -611,7 +625,7 @@
             if (this.state.error) {
                 return `
                     <div class="p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
-                        <strong>Error:</strong> ${this.escapeHtml(this.state.error)}
+                        <strong>${this.h('error', 'Error:')}</strong> ${this.escapeHtml(this.state.error)}
                     </div>
                 `;
             }
@@ -624,8 +638,8 @@
                             <div class="statamic-ai-title-suggestion">
                                 <span>${this.escapeHtml(title)}</span>
                                 <div>
-                                    <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary" data-copy-title="${index}">${ICONS.copy} Copy</button>
-                                    ${canApply ? `<button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-use-title="${index}">${ICONS.check} Use Title</button>` : ''}
+                                    <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary" data-copy-title="${index}">${ICONS.copy} ${this.h('copy', 'Copy')}</button>
+                                    ${canApply ? `<button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-use-title="${index}">${ICONS.check} ${this.h('use_title', 'Use Title')}</button>` : ''}
                                 </div>
                             </div>
                         `).join('')}
@@ -638,7 +652,7 @@
                     return `
                         <div class="text-center py-4">
                             <button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="run-classify">
-                                ${ICONS.classify} Analyze Content & Suggest Tags
+                                ${ICONS.classify} ${this.h('analyze', 'Analyze Content & Suggest Tags')}
                             </button>
                         </div>
                     `;
@@ -648,7 +662,7 @@
                     <div class="flex flex-col gap-4">
                         ${this.state.classificationCategories.length > 0 ? `
                             <div>
-                                <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Suggested Categories</label>
+                                <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">${this.h('suggested_categories', 'Suggested Categories')}</label>
                                 <div class="statamic-ai-tags-container">
                                     ${this.state.classificationCategories.map(cat => `
                                         <button type="button" class="statamic-ai-tag-chip" data-copy-tag="${this.escapeHtml(cat)}">
@@ -661,9 +675,9 @@
 
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <label class="text-xs font-semibold uppercase text-gray-500">Suggested Tags</label>
+                                <label class="text-xs font-semibold uppercase text-gray-500">${this.h('suggested_tags', 'Suggested Tags')}</label>
                                 <button type="button" class="text-xs text-sky-600 dark:text-sky-400 font-medium hover:underline" data-action="copy-all-tags">
-                                    Copy All Tags
+                                    ${this.h('copy_all_tags', 'Copy All Tags')}
                                 </button>
                             </div>
                             <div class="statamic-ai-tags-container">
@@ -682,7 +696,7 @@
                 return `
                     <div class="text-center py-2">
                         <button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="generate">
-                            ${ICONS.sparkles} Generate with AI
+                            ${ICONS.sparkles} ${this.h('generate_ai', 'Generate with AI')}
                         </button>
                     </div>
                 `;
@@ -695,20 +709,20 @@
             return `
                 <div class="statamic-ai-preview-box">
                     <div class="statamic-ai-preview-header">
-                        <span>AI Output (${genWords} words, ${this.state.generatedText.length} chars)</span>
+                        <span>${this.h('output_text', 'AI Output (:words words, :chars chars)', { words: genWords, chars: this.state.generatedText.length })}</span>
                         <button type="button" class="text-xs text-sky-600 dark:text-sky-400 font-medium hover:underline flex items-center gap-1" data-action="generate">
-                            🔄 Regenerate
+                            🔄 ${this.h('regenerate', 'Regenerate')}
                         </button>
                     </div>
                     <textarea class="statamic-ai-result-textarea" id="statamic-ai-result-input">${this.escapeHtml(this.state.generatedText)}</textarea>
                     ${this.state.translatedTitle ? `
                         <div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center justify-between">
                             <div>
-                                <span class="font-semibold text-gray-700 dark:text-gray-300">Translated Post Title:</span>
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">${this.h('translated_title', 'Translated Post Title:')}</span>
                                 <span class="text-sky-700 dark:text-sky-300 ml-1">"${this.escapeHtml(this.state.translatedTitle)}"</span>
                             </div>
                             <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary text-xs" data-action="apply-title">
-                                Update Title
+                                ${this.h('update_title', 'Update Title')}
                             </button>
                         </div>
                     ` : ''}
@@ -719,14 +733,14 @@
         renderFooterActions() {
             if (this.state.tab === 'titles') {
                 return `<button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="run-titles" ${this.state.loading ? 'disabled' : ''}>
-                    ${ICONS.sparkles} ${this.state.titleSuggestions.length ? 'Regenerate Titles' : 'Generate Titles'}
+                    ${ICONS.sparkles} ${this.state.titleSuggestions.length ? this.h('regenerate_titles', 'Regenerate Titles') : this.h('generate_titles', 'Generate Titles')}
                 </button>`;
             }
 
             if (this.state.tab === 'classify') {
                 return `
                     <button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="copy-all-tags">
-                        ${ICONS.copy} Copy All Tags
+                        ${ICONS.copy} ${this.h('copy_all_tags', 'Copy All Tags')}
                     </button>
                 `;
             }
@@ -734,20 +748,20 @@
             if (!this.state.generatedText) {
                 return `
                     <button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="generate" ${this.state.loading ? 'disabled' : ''}>
-                        ${ICONS.sparkles} Generate
+                        ${ICONS.sparkles} ${this.h('generate', 'Generate')}
                     </button>
                 `;
             }
 
             return `
                 <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary" data-action="copy">
-                    ${ICONS.copy} Copy
+                    ${ICONS.copy} ${this.h('copy', 'Copy')}
                 </button>
                 <button type="button" class="statamic-ai-btn statamic-ai-btn-secondary" data-action="insert-below">
-                    ${ICONS.insert} Insert Below
+                    ${ICONS.insert} ${this.h('insert_below', 'Insert Below')}
                 </button>
                 <button type="button" class="statamic-ai-btn statamic-ai-btn-primary" data-action="replace">
-                    ${ICONS.check} Replace Selection
+                    ${ICONS.check} ${this.h('replace_selection', 'Replace Selection')}
                 </button>
             `;
         }
@@ -905,7 +919,7 @@
         async generate() {
             if (this.state.loading) return;
             if (!this.state.originalText.trim()) {
-                this.toast('Please select some text in the editor first.', 'error');
+                this.toast(this.t('select_text', 'Please select some text in the editor first.'), 'error');
                 return;
             }
 
@@ -959,11 +973,11 @@
                         }
                     }
                 } else {
-                    this.state.error = response.data?.error || 'Unknown error occurred.';
+                    this.state.error = response.data?.error || this.t('unknown_error', 'Unknown error occurred.');
                 }
             } catch (err) {
                 if (this.isCurrentSession(sessionId)) {
-                    this.state.error = err.response?.data?.error || err.message || 'API request failed.';
+                    this.state.error = err.response?.data?.error || err.message || this.t('request_failed', 'API request failed.');
                 }
             } finally {
                 if (this.isCurrentSession(sessionId)) {
@@ -977,7 +991,7 @@
             if (this.state.loading) return;
             const content = this.state.originalText.trim() || this.getFullEditorContent();
             if (!content) {
-                this.toast('No content available to classify.', 'error');
+                this.toast(this.t('no_classification_content', 'No content available to classify.'), 'error');
                 return;
             }
 
@@ -996,11 +1010,11 @@
                     this.state.classificationTags = response.data.tags || [];
                     this.state.classificationCategories = response.data.categories || [];
                 } else {
-                    this.state.error = response.data?.error || 'Classification failed.';
+                    this.state.error = response.data?.error || this.t('classification_failed', 'Classification failed.');
                 }
             } catch (err) {
                 if (this.isCurrentSession(sessionId)) {
-                    this.state.error = err.response?.data?.error || err.message || 'Classification request failed.';
+                    this.state.error = err.response?.data?.error || err.message || this.t('classification_request_failed', 'Classification request failed.');
                 }
             } finally {
                 if (this.isCurrentSession(sessionId)) {
@@ -1014,7 +1028,7 @@
             if (this.state.loading) return;
             const content = this.getFullEditorContent().trim() || this.state.originalText.trim();
             if (!content) {
-                this.state.error = 'Add or select some post content before generating titles.';
+                this.state.error = this.t('no_title_content', 'Add or select some post content before generating titles.');
                 this.renderModal();
                 return;
             }
@@ -1033,12 +1047,12 @@
                 });
                 if (!this.isCurrentSession(sessionId)) return;
                 if (!response.data?.success || !Array.isArray(response.data.titles) || !response.data.titles.length) {
-                    throw new Error(response.data?.error || 'No title suggestions were returned. Please try again.');
+                    throw new Error(response.data?.error || this.t('no_titles', 'No title suggestions were returned. Please try again.'));
                 }
                 this.state.titleSuggestions = response.data.titles;
             } catch (err) {
                 if (this.isCurrentSession(sessionId)) {
-                    this.state.error = err.response?.data?.error || err.response?.data?.message || err.message || 'Title generation failed.';
+                    this.state.error = err.response?.data?.error || err.response?.data?.message || err.message || this.t('title_generation_failed', 'Title generation failed.');
                 }
             } finally {
                 if (this.isCurrentSession(sessionId)) {
@@ -1088,7 +1102,7 @@
                 this.applyTitleUpdate(this.state.translatedTitle);
             }
 
-            this.toast('Content updated successfully.');
+            this.toast(this.t('content_updated', 'Content updated successfully.'));
             this.close();
         }
 
@@ -1109,7 +1123,7 @@
                 this.copyToClipboard(newText);
             }
 
-            this.toast('Content inserted successfully.');
+            this.toast(this.t('content_inserted', 'Content inserted successfully.'));
             this.close();
         }
 
@@ -1173,15 +1187,15 @@
                 titleInput.value = newTitle;
                 titleInput.dispatchEvent(new Event('input', { bubbles: true }));
                 titleInput.dispatchEvent(new Event('change', { bubbles: true }));
-                this.toast('Post title updated.');
+                this.toast(this.t('title_updated', 'Post title updated.'));
             }
         }
 
         copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                this.toast('Copied to clipboard!');
+                this.toast(this.t('copied', 'Copied to clipboard!'));
             }).catch(() => {
-                this.toast('Failed to copy.', 'error');
+                this.toast(this.t('copy_failed', 'Failed to copy.'), 'error');
             });
         }
 

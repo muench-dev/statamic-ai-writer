@@ -4,6 +4,14 @@ All notable changes to Statamic AI Writer are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- English and German Control Panel translations for the assistant, editor integrations, notifications, permissions, alt-text actions, and package-owned provider errors. Interface language follows the Control Panel locale independently of content generation settings, with publishable translation overrides.
+
+### Fixed
+
+- Resolve assistant script translations using the explicit Control Panel locale, even after Statamic's view composer loads English fallback translations.
+
 ## [2.0.1] - 2026-10-02
 
 ### Fixed

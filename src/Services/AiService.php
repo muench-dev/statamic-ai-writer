@@ -168,7 +168,7 @@ class AiService
         $titles = $decoded['titles'] ?? null;
 
         if (! is_array($titles) || ! array_is_list($titles)) {
-            throw new Exception('The AI provider returned invalid title suggestions. Please try again.');
+            throw new Exception(__('statamic-ai-writer::messages.invalid_titles'));
         }
 
         $titles = array_values(array_unique(array_map(
@@ -177,7 +177,7 @@ class AiService
         )));
 
         if ($titles === []) {
-            throw new Exception('The AI provider returned no title suggestions. Please try again.');
+            throw new Exception(__('statamic-ai-writer::messages.provider_no_titles'));
         }
 
         return array_slice($titles, 0, 5);
@@ -286,7 +286,7 @@ class AiService
             return [base64_encode(file_get_contents($asset)), $mimeType];
         }
 
-        throw new Exception('Invalid asset provided for alt text generation.');
+        throw new Exception(__('statamic-ai-writer::messages.invalid_asset'));
     }
 
     /**
@@ -300,7 +300,7 @@ class AiService
     public function chat(array $messages, array $overrides = []): string
     {
         if (empty($this->apiKey)) {
-            throw new Exception('OpenAI API Key is missing. Please set OPEN_AI_API_KEY in your .env file or publish the statamic-ai-writer config.');
+            throw new Exception(__('statamic-ai-writer::messages.missing_api_key'));
         }
 
         $url = $this->resolveChatCompletionsUrl();
@@ -326,13 +326,13 @@ class AiService
                 ?? $response->body()
                 ?? 'Unknown API error';
 
-            throw new Exception("AI Provider Error (HTTP {$response->status()}): {$errorMessage}");
+            throw new Exception(__('statamic-ai-writer::messages.provider_error', ['status' => $response->status(), 'message' => $errorMessage]));
         }
 
         $content = $response->json('choices.0.message.content');
 
         if ($content === null) {
-            throw new Exception('No content was returned by the AI provider.');
+            throw new Exception(__('statamic-ai-writer::messages.provider_no_content'));
         }
 
         return trim($content);

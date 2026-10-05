@@ -52,6 +52,9 @@ class ServiceProvider extends AddonServiceProvider
             'aiWriter' => fn ($request) => [
                 'allowed' => (bool) $request->user()?->can('use ai writer'),
                 'configured' => ! empty(config('statamic-ai-writer.api_key')),
+                // The CP view composer may leave the translator on its fallback
+                // locale, so resolve the dictionary using the CP locale explicitly.
+                'translations' => __('statamic-ai-writer::messages', [], Statamic::cpLocale()),
             ],
         ]);
     }
@@ -59,7 +62,7 @@ class ServiceProvider extends AddonServiceProvider
     protected function bootPermissions(): void
     {
         Permission::register('use ai writer')
-            ->label(__('Use AI Writer'))
-            ->description(__('Allows using the AI Writer assistant in content editors and asset manager.'));
+            ->label(__('statamic-ai-writer::messages.permission_label'))
+            ->description(__('statamic-ai-writer::messages.permission_description'));
     }
 }

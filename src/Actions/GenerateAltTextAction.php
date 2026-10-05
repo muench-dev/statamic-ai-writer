@@ -15,17 +15,17 @@ class GenerateAltTextAction extends Action
 
     public static function title()
     {
-        return __('Generate AI Alt Text');
+        return __('statamic-ai-writer::messages.alt_text_action');
     }
 
     public function buttonText()
     {
-        return __('Generate Alt Text|Generate Alt Texts');
+        return __('statamic-ai-writer::messages.alt_text_button');
     }
 
     public function confirmationText()
     {
-        return __('Generate AI alt text for this image?|Generate AI alt texts for :count images?');
+        return __('statamic-ai-writer::messages.alt_text_confirmation');
     }
 
     public function visibleTo($item)
@@ -45,7 +45,7 @@ class GenerateAltTextAction extends Action
     {
         return [
             'overwrite' => [
-                'display' => __('Overwrite existing alt text'),
+                'display' => __('statamic-ai-writer::messages.overwrite_alt_text'),
                 'type' => 'toggle',
                 'default' => false,
                 'inline_label' => __('No'),
@@ -59,7 +59,7 @@ class GenerateAltTextAction extends Action
         $overwrite = (bool) ($values['overwrite'] ?? false);
 
         if (empty(config('statamic-ai-writer.api_key'))) {
-            throw new Exception('AI Writer is not configured. Please set OPEN_AI_API_KEY before generating alt text.');
+            throw new Exception(__('statamic-ai-writer::messages.alt_text_setup_required'));
         }
 
         if (config('queue.default') === 'sync') {
@@ -76,7 +76,7 @@ class GenerateAltTextAction extends Action
                     $counts[$key] += $job->result[$key];
                 }
             }
-            $message = __('Generated :generated alt texts. Skipped :skipped existing alt texts. Failed: :failed.', $counts);
+            $message = __('statamic-ai-writer::messages.alt_text_result', $counts);
             if ($counts['failed'] > 0) {
                 throw new Exception($message);
             }
@@ -86,6 +86,6 @@ class GenerateAltTextAction extends Action
 
         $assets->each(fn (Asset $asset) => GenerateAltTextJob::dispatch($asset->id(), [], $overwrite));
 
-        return __('Alt text generation queued. Existing alt texts will be skipped unless overwrite is enabled. Check queue failures and logs for the outcome.');
+        return __('statamic-ai-writer::messages.alt_text_queued');
     }
 }

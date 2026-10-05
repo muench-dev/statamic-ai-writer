@@ -34,7 +34,7 @@ class GenerateAltTextJob implements ShouldQueue
 
         if (! $asset) {
             Log::warning("AI Writer: Asset not found for alt text generation: {$this->assetId}");
-            throw new Exception('The asset could not be found for alt text generation.');
+            throw new Exception(__('statamic-ai-writer::messages.asset_not_found'));
         }
 
         if (! $asset->isImage() || $asset->extension() === 'svg') {
@@ -58,7 +58,7 @@ class GenerateAltTextJob implements ShouldQueue
                 $altText = $ai->generateAltText($asset, (string) $locale);
 
                 if (trim($altText) === '') {
-                    throw new Exception('The AI provider returned empty alt text.');
+                    throw new Exception(__('statamic-ai-writer::messages.empty_alt_text'));
                 }
                 $asset->set($fieldName, $altText);
                 $this->result['generated']++;
@@ -71,7 +71,7 @@ class GenerateAltTextJob implements ShouldQueue
         if ($this->result['generated'] > 0) {
             try {
                 if ($asset->save() === false) {
-                    throw new Exception('Alt text could not be saved because the asset save was cancelled.');
+                    throw new Exception(__('statamic-ai-writer::messages.alt_text_save_cancelled'));
                 }
             } catch (Exception $e) {
                 $this->result['failed'] += $this->result['generated'];
@@ -82,7 +82,7 @@ class GenerateAltTextJob implements ShouldQueue
         }
 
         if ($this->result['failed'] > 0) {
-            throw new Exception('AI Writer failed to generate one or more alt texts. Check the application log for details.');
+            throw new Exception(__('statamic-ai-writer::messages.alt_text_failed'));
         }
     }
 
